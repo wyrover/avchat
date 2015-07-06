@@ -99,10 +99,7 @@ size_t SockStream::getSize()
 void SockStream::ensureSize(int incre)
 {
 	if (size_ + incre > capacity_) {
-		size_t newCapacity = capacity_ * 2;
-		if (capacity_ == 0) {
-			newCapacity = incre * 2;
-		}
+		size_t newCapacity = (size_ + incre) * 2;
 		char* newPtr = new char[newCapacity];
 		memcpy(newPtr, buff_, size_);
 		delete[] buff_;

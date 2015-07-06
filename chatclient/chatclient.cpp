@@ -41,7 +41,5 @@ bool ChatClient::connect(const std::wstring& username, const std::wstring& passw
 		return true;
 	return false;
 }
-
-void ChatClient::sendMessage(const std::wstring& username, const std::wstring& message)
-{
+ void ChatClient::sendMessage(const std::wstring& username, const std::wstring& message) {
 }

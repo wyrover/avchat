@@ -15,8 +15,9 @@ public:
 	};
 public:
 	ChatCommand(int type);
-	~ChatCommand();
+	virtual ~ChatCommand();
 	virtual void writeTo(SockStream* buff) = 0;
+	int getType() const;
 	
 protected:
 	int type_;

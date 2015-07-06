@@ -1,26 +1,32 @@
 #pragma once
 
+class ChatCommand;
+
 class ChatOverlappedData : public WSAOVERLAPPED
 {
 public:
 	enum Type {
 		kType_Accept,
-		kType_AcceptAck,
+		kType_LoginAck,
 		kType_Send,
 		kType_Recv,
 	};
 public:
 	ChatOverlappedData(int type);
 	~ChatOverlappedData();
-	void setAcceptBuffer(char* acceptBuff);
-	char* getAccpetBuffer();
-	void setAcceptSock(SOCKET acceptSock);
-	SOCKET getAcceptSock();
+	buffer& getBuf();
+	buffer& getCmdBuf();
+	int& getCmdNeedSize();
+	
+	void setSocket(SOCKET acceptSock);
+	SOCKET getSocket();
 	int getType();
 	void setType(int type);
 
 private:
 	int type_;
-	char* acceptBuff_;
-	SOCKET acceptSock_;
+	buffer recvBuf_;
+	buffer cmdBuf_;
+	SOCKET sock_;
+	int cmdNeedSize_;
 };

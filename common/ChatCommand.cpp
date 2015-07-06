@@ -10,3 +10,8 @@ ChatCommand::ChatCommand(int type)
 ChatCommand::~ChatCommand()
 {
 }
+
+int ChatCommand::getType() const
+{
+	return type_;
+}

@@ -86,10 +86,9 @@ void ChatServer::run()
 		if (acceptRequest_ < kMaxAcceptRequest) {
 			ChatOverlappedData* overlap = new ChatOverlappedData(ChatOverlappedData::kType_Accept);
 			SOCKET acceptSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-			char* acceptBuff = new char[1024];
-			overlap->setAcceptBuffer(acceptBuff);
-			overlap->setAcceptSock(acceptSock);
-			BOOL ret = lpfnAcceptEx(listenSock_, acceptSock, acceptBuff, 1024 - (sizeof(sockaddr_in) + 16) * 2,
+			overlap->setSocket(acceptSock);
+			buffer& recvBuf = overlap->getBuf();
+			BOOL ret = lpfnAcceptEx(listenSock_, acceptSock, recvBuf.data(), recvBuf.size() - (sizeof(sockaddr_in) + 16) * 2,
 				sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, overlap);
 			DWORD errCode = GetLastError();
 			if (ret) {
@@ -113,21 +112,20 @@ bool ChatServer::queueCompletionStatus()
 {
 	TRACE_IF(LOG,"try to queue completion status\n");
 	DWORD bytes;
-	ULONG_PTR key;
-	ChatOverlappedData* ol;
+	ULONG_PTR key; ChatOverlappedData* ol;
 	if (!GetQueuedCompletionStatus(hComp_, &bytes, &key, (LPOVERLAPPED*)&ol, 0)) {
 		TRACE_IF(LOG,"no queued completion status\n");
 		return false;
 	}
 	int type = ol->getType();
-	TRACE_IF(LOG,"get queued completion status type = %d\n", type);
+	TRACE("get queued completion status type = %d\n", type);
 	if (type == ChatOverlappedData::kType_Accept) {
 		onAccept(ol, bytes, key);
 	} else if (type == ChatOverlappedData::kType_Recv) {
-
+		onRecv(ol, bytes, key);
 	} else if (type == ChatOverlappedData::kType_Send) {
 
-	} else if (type == ChatOverlappedData::kType_AcceptAck) {
+	} else if (type == ChatOverlappedData::kType_LoginAck) {
 		TRACE_IF(LOG,"login ack done\n");
 	}
 	return true; 
@@ -138,28 +136,37 @@ void ChatServer::onAccept(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 	sockaddr* localAddr;
 	sockaddr* remoteAddr;
 	INT localAddrLen, remoteAddrLen;
-	lpfnGetAcceptExSockaddrs(ol->getAccpetBuffer(), 1024 - (sizeof(sockaddr_in) + 16) * 2, sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
+	buffer& recvBuf = ol->getBuf();
+	lpfnGetAcceptExSockaddrs(recvBuf.data(), recvBuf.size() - (sizeof(sockaddr_in) + 16) * 2,
+		sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 		&localAddr, &localAddrLen, &remoteAddr, &remoteAddrLen);
+
+	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)ol->getSocket(), hComp_, kCompKey, 0);
+	assert(hComp2 == hComp_);
+
 	char str[20];
 	inet_ntop(AF_INET, &((sockaddr_in*)remoteAddr)->sin_addr, str, 20);
 	acceptRequest_--;
-	SockStream stream(ol->getAccpetBuffer(), 1024 - (sizeof(sockaddr_in) + 16) * 2);
-	int type = stream.getInt();
-	assert(type == ChatCommand::kAction_Login);
-	int size = stream.getInt();
-	auto username = stream.getString();
-	auto password = stream.getString();
 	acceptedRequest_++;
-	TRACE_IF(LOG,"%d new connection from remote: %s, username: %S, password: %S\n", acceptedRequest_, str, username.c_str(), password.c_str());
-	TRACE("%d thread id %d\n", acceptedRequest_, GetCurrentThreadId());
-	addSocketMap(username, ol);
-
-	char ret = 1;
-	ol->setType(ChatOverlappedData::kType_AcceptAck);
-	send(ol->getAcceptSock(), &ret, 1, ol);
+	TRACE("%d recv connection from %s, thread id = %d\n", acceptedRequest_, str, GetCurrentThreadId());
+	onRecv(ol, bytes, key);
+	//queueRecvCmdRequest(ol);
 }
 
-void ChatServer::addSocketMap(const std::wstring& username, ChatOverlappedData* ol)
+void ChatServer::onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
+{
+	std::vector<ChatCommand*> cmds;
+	int bufSize = bytes;
+	parseCommand(ol, ol->getBuf().data(), bufSize, ol->getCmdNeedSize(), cmds);
+	for (auto cmd : cmds) {
+		dispatchCommand(ol, cmd);
+	}
+	for (auto cmd : cmds) {
+		delete cmd;
+	}
+}
+
+void ChatServer::addSocketMap(const std::wstring& username, ChatOverlappedData* ol) 
 {
 	std::lock_guard<std::mutex> g(mapMutex_);
 	connMap_[username] = ol;
@@ -168,7 +175,7 @@ void ChatServer::addSocketMap(const std::wstring& username, ChatOverlappedData* 
 SOCKET ChatServer::getSocketByUsername(const std::wstring& username)
 {
 	std::lock_guard<std::mutex> g(mapMutex_);
-	return connMap_[username]->getAcceptSock();
+	return connMap_[username]->getSocket();
 }
 
 void ChatServer::removeSocketByUsername(const std::wstring& username)
@@ -192,4 +199,107 @@ bool ChatServer::quit()
 {
 	quit_ = true;
 	return true;
+}
+
+void ChatServer::onCmdLogin(const std::wstring& username, const std::wstring& password, ChatOverlappedData* ol)
+{
+	//TRACE(L"user %s pass: %s try to login\n", username.c_str(), password.c_str());
+	addSocketMap(username, ol);
+	char ret = 1;
+	ol->setType(ChatOverlappedData::kType_LoginAck);
+	send(ol->getSocket(), &ret, 1, ol);
+}
+
+void ChatServer::queueRecvCmdRequest(ChatOverlappedData* ol)
+{
+	buffer& buf = ol->getBuf();
+	WSABUF* wsaBuf = new WSABUF[1];
+	wsaBuf[0].buf = buf.data();
+	wsaBuf[0].len = buf.size();
+	DWORD flags = 0;
+	ol->setType(ChatOverlappedData::kType_Recv);
+	int err = WSARecv(ol->getSocket(), wsaBuf, 1, NULL, &flags, ol, NULL);
+	if (err != 0) {
+		assert(GetLastError() == WSA_IO_PENDING);
+	}
+}
+
+void ChatServer::dispatchCommand(ChatOverlappedData* ol, ChatCommand* cmd)
+{
+	int type = cmd->getType();
+	switch (type) {
+		case ChatCommand::kAction_Login:
+		{
+			LoginCommand* loginCmd = dynamic_cast<LoginCommand*>(cmd);
+			auto username = loginCmd->getUsername();
+			auto password = loginCmd->getPassword();
+			onCmdLogin(username, password, ol);
+			break;
+		}
+		default:
+			break;
+	}
+}
+
+void ChatServer::parseCommand(ChatOverlappedData* ol, char* recvBuf, int& bytes, int& neededSize,
+	std::vector<ChatCommand*>& cmdVec)
+{
+	if (bytes == 0)
+		return;
+
+	buffer& cmdBuf = ol->getCmdBuf();
+	int cmdSize = 0;
+	if (neededSize == -1)  {
+		if (cmdBuf.size() + bytes < 8) {
+			cmdBuf.append(recvBuf, bytes);
+			queueRecvCmdRequest(ol);
+			return;
+		} else {
+			SockStream stream(ol->getBuf().data(), bytes);
+			stream.getInt(); // type
+			cmdSize = stream.getInt();
+		}
+	} else {
+		cmdSize = neededSize;
+	}
+
+	if (bytes >= cmdSize) {
+		ChatCommand* cmd = getCommand(recvBuf, bytes, cmdBuf);
+		cmdVec.push_back(cmd);
+		neededSize = -1;
+		recvBuf += cmdSize;
+		bytes -= cmdSize;
+		cmdBuf.clear();
+		parseCommand(ol, recvBuf, bytes, neededSize, cmdVec);
+	} else {
+		cmdBuf.append(recvBuf, bytes);
+		neededSize = cmdSize - bytes;
+		queueRecvCmdRequest(ol);
+	}
+}
+
+ChatCommand* ChatServer::getCommand(char* recvBuf, int bytes, buffer& cmdBuf)
+{
+	char* buf = nullptr;
+	int len = 0;
+	if (cmdBuf.empty()) {
+		buf = recvBuf;
+		len = bytes;
+	} else {
+		cmdBuf.append(recvBuf, bytes);
+		buf = cmdBuf.data();
+		len = cmdBuf.size();
+	}
+	SockStream stream(buf, len);
+	int type = stream.getInt();
+	switch (type) {
+		case ChatCommand::kAction_Login:
+		{
+			auto cmd = LoginCommand::Parse(&stream);
+			return cmd;
+		}
+		default:
+			break;
+	}
+	return nullptr;
 }
