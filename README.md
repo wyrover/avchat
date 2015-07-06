@@ -1,2 +1,2 @@
 # chatserver
-An sample chatserver/client based on windows IOCP and c++.
+A simple chatserver/client based on windows IOCP and c++.
