@@ -2,7 +2,7 @@
 #include "ChatOverlappedData.h"
 
 ChatOverlappedData::ChatOverlappedData(int type)
-	: type_(type), recvBuf_(1024)
+	: netType_(type), recvBuf_(1024)
 {
 	WSAOVERLAPPED* ol = (WSAOVERLAPPED*)this;
 	memset(ol, 0, sizeof(WSAOVERLAPPED));
@@ -13,9 +13,9 @@ ChatOverlappedData::~ChatOverlappedData()
 {
 }
 
-int ChatOverlappedData::getType()
+int ChatOverlappedData::getNetType() const
 {
-	return type_;
+	return netType_;
 }
 
 void ChatOverlappedData::setSocket(SOCKET acceptSock)
@@ -28,9 +28,9 @@ SOCKET ChatOverlappedData::getSocket()
 	return sock_;
 }
 
-void ChatOverlappedData::setType(int type)
+void ChatOverlappedData::setNetType(int type)
 {
-	type_ = type;
+	netType_ = type;
 }
 
 buffer& ChatOverlappedData::getBuf()
@@ -46,4 +46,14 @@ buffer& ChatOverlappedData::getCmdBuf()
 int& ChatOverlappedData::getCmdNeedSize()
 {
 	return cmdNeedSize_;
+}
+
+int ChatOverlappedData::getCommandType() const
+{
+	return commandType_;
+}
+
+void ChatOverlappedData::setCommandType(int type)
+{
+	commandType_ = type;
 }

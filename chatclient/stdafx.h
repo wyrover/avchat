@@ -5,14 +5,15 @@
 
 #pragma once
 
-#include "targetver.h"
-
 #include <stdio.h>
 #include <tchar.h>
 #include <thread>
 #include <memory>
-#include <string>
+#include <map>
+#include <mutex>
+#include <atomic>
 #include <vector>
+
 // TODO: reference additional headers your program requires here
 #include <stdio.h>
 #include <assert.h>
@@ -22,3 +23,5 @@
 #include <Ws2spi.h>
 #include <ws2tcpip.h>
 #include <MSWSock.h>
+
+#include "../common/buffer.h"

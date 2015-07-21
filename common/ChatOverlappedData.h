@@ -1,16 +1,11 @@
 #pragma once
 
+#include "buffer.h"
+
 class ChatCommand;
 
 class ChatOverlappedData : public WSAOVERLAPPED
 {
-public:
-	enum Type {
-		kType_Accept,
-		kType_LoginAck,
-		kType_Send,
-		kType_Recv,
-	};
 public:
 	ChatOverlappedData(int type);
 	~ChatOverlappedData();
@@ -20,11 +15,14 @@ public:
 	
 	void setSocket(SOCKET acceptSock);
 	SOCKET getSocket();
-	int getType();
-	void setType(int type);
+	int getNetType() const;
+	void setNetType(int type);
+	int getCommandType() const;
+	void setCommandType(int type);
 
 private:
-	int type_;
+	int netType_;
+	int commandType_;
 	buffer recvBuf_;
 	buffer cmdBuf_;
 	SOCKET sock_;

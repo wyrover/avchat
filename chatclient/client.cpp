@@ -31,21 +31,19 @@ int _tmain(int argc, _TCHAR* argv[])
 	int port = std::stoi(argv[2]);
 	std::vector<std::thread> threads;
 	ChatClient* client = new ChatClient(L"127.0.0.1", 2333);
-	//client->connect(L"keke", L"haha");
-	client->connect(longUsername, longUsername);
 
-	//for (int i = 0; i < 10; ++i) {
-	//	threads.push_back(std::thread([] {
-	//		for (int i = 0; i < 1024; ++i) {
-	//			ChatClient* client = new ChatClient(L"127.0.0.1", 2333);
-	//			client->connect(L"keke", L"haha");
-	//		}
-	//	}));
-	//}
+	for (int i = 0; i < 10; ++i) {
+		threads.push_back(std::thread([] {
+			for (int i = 0; i < 1024; ++i) {
+				ChatClient* client = new ChatClient(L"127.0.0.1", 2333);
+				client->loginIn(L"keke", L"haha");
+			}
+		}));
+	}
 
-	//for (auto& thread : threads) {
-	//	thread.join();
-	//}
+	for (auto& thread : threads) {
+		thread.join();
+	}
 	WSACleanup();
 	return 0;
 }

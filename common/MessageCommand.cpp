@@ -1,9 +1,10 @@
 #include "stdafx.h"
+#include "NetConstants.h"
 #include "MessageCommand.h"
 #include "SockStream.h"
 
 MessageCommand::MessageCommand()
-	: ChatCommand(ChatCommand::kAction_ClientMsg)
+	: ChatCommand(net::kCommandType_Message)
 {
 }
 

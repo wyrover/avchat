@@ -79,15 +79,19 @@
   <ItemGroup>
     <ClInclude Include="buffer.h" />
     <ClInclude Include="ChatCommand.h" />
+    <ClInclude Include="ChatOverlappedData.h" />
     <ClInclude Include="LoginCommand.h" />
     <ClInclude Include="MessageCommand.h" />
+    <ClInclude Include="NetConstants.h" />
     <ClInclude Include="SockStream.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="trace.h" />
+    <ClInclude Include="UserListCommand.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChatCommand.cpp" />
+    <ClCompile Include="ChatOverlappedData.cpp" />
     <ClCompile Include="LoginCommand.cpp" />
     <ClCompile Include="MessageCommand.cpp" />
     <ClCompile Include="SockStream.cpp" />
@@ -96,6 +100,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Trace.cpp" />
+    <ClCompile Include="UserListCommand.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

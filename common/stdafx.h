@@ -7,11 +7,19 @@
 
 #include "targetver.h"
 
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
-
-
-
-// TODO: reference additional headers your program requires here
-#include <windows.h>
-#include <string>
+#include <stdio.h>
+#include <tchar.h>
+#include <assert.h>
+#include <thread>
+#include <memory>
+#include <map>
+#include <mutex>
+#include <atomic>
 #include <vector>
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#include <Ws2spi.h>
+#include <ws2tcpip.h>
+#include <MSWSock.h>

@@ -2,6 +2,15 @@
 
 class ChatOverlappedData;
 class ChatCommand;
+class MessageCommand;
+class LoginCommand;
+
+struct ClientState
+{
+	ChatOverlappedData* recvOl;
+	ChatOverlappedData* sendOl;
+	std::wstring username;
+};
 
 class ChatServer
 {
@@ -21,19 +30,21 @@ private:
 		int& neededSize, std::vector<ChatCommand*>& cmdVec);
 	ChatCommand* getCommand(char* recvBuf, int bytes, buffer& cmdBuf);
 
-	void onCmdLogin(const std::wstring& username, const std::wstring& password, ChatOverlappedData* ol);
-	void onCmdMessage();
+	void onCmdLogin(LoginCommand* loginCmd, ClientState* cs);
+	void onCmdMessage(MessageCommand* messageCmd, ClientState* cs);
 
-	void addSocketMap(const std::wstring& username, ChatOverlappedData* ol);
-	SOCKET getSocketByUsername(const std::wstring& username);
-	void removeSocketByUsername(const std::wstring& username);
-	void send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol);
+	void updateUserlist();
+	void addSocketMap(SOCKET so, ClientState* cs);
+	bool getClientByUsername(const std::wstring& username, ClientState* cs);
+	void removeClientByUsername(const std::wstring& username);
+	void send(ClientState* ol, char* buff, int len);
 	void queueRecvCmdRequest(ChatOverlappedData* ol);
 
-	std::map<std::wstring, ChatOverlappedData*> connMap_;
+	std::map<SOCKET, ClientState> connMap_;
 	std::mutex mapMutex_;
 	SOCKET listenSock_;
 	HANDLE hComp_;
+	bool chatDataToClientState(ChatOverlappedData* ol, ClientState* cs);
 
 	std::atomic<bool> quit_;
 	std::atomic<int>  acceptRequest_;

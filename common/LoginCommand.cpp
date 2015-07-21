@@ -1,9 +1,10 @@
 #include "stdafx.h"
 #include "LoginCommand.h"
 #include "SockStream.h"
+#include "NetConstants.h"
 
 LoginCommand::LoginCommand()
-	: ChatCommand(ChatCommand::kAction_Login)
+	: ChatCommand(net::kCommandType_Login)
 {
 }
 
