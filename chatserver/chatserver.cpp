@@ -11,7 +11,8 @@
 #include "../common/SockStream.h"
 #include "../common/trace.h"
 
-#define LOG 0
+#define LOG_LOGIN 1
+#define LOG_IOCP 0
 const static int kCompKey = 233;
 const static int kPort = 2333;
 const static int kMaxAcceptRequest = 1000;
@@ -83,7 +84,7 @@ void ChatServer::init()
 
 void ChatServer::run()
 {
-	TRACE("chatserver::run %d\n", GetCurrentThreadId());
+	TRACE_IF(LOG_IOCP, "chatserver::run %d\n", GetCurrentThreadId());
 	while (!quit_) {
 		if (acceptRequest_ < kMaxAcceptRequest) {
 			ChatOverlappedData* overlap = new ChatOverlappedData(net::kNetType_Accept);
@@ -94,10 +95,10 @@ void ChatServer::run()
 				sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16, NULL, overlap);
 			DWORD errCode = GetLastError();
 			if (ret) {
-				TRACE_IF(LOG,"get an accepted sync\n");
+				TRACE_IF(LOG_IOCP,"get an accepted sync\n");
 			} else if (errCode == ERROR_IO_PENDING) {
 				acceptRequest_++;
-				TRACE_IF(LOG,"%d queued an accept request\n", acceptRequest_);
+				TRACE_IF(LOG_IOCP,"%d queued an accept request\n", acceptRequest_);
 				queueCompletionStatus();
 			} else {
 				abort();
@@ -112,18 +113,19 @@ void ChatServer::run()
 
 bool ChatServer::queueCompletionStatus()
 {
-	TRACE_IF(LOG,"try to queue completion status\n");
+	TRACE_IF(LOG_IOCP,"try to queue completion status\n");
 	DWORD bytes;
 	ULONG_PTR key; ChatOverlappedData* ol;
 	if (!GetQueuedCompletionStatus(hComp_, &bytes, &key, (LPOVERLAPPED*)&ol, 0)) {
-		TRACE_IF(LOG,"no queued completion status\n");
+		TRACE_IF(LOG_IOCP,"no queued completion status\n");
 		return false;
 	}
 	int type = ol->getNetType();
-	TRACE_IF(LOG, "get queued completion status type = %d\n", type);
+	TRACE_IF(LOG_IOCP, "get queued completion status type = %d\n", type);
 	if (type == net::kNetType_Accept) {
 		onAccept(ol, bytes, key);
 	} else if (type == net::kNetType_Recv) {
+		TRACE("get recv request result for ol %x\n", ol);
 		onRecv(ol, bytes, key);
 	} else if (type == net::kNetType_Send) {
 
@@ -148,7 +150,7 @@ void ChatServer::onAccept(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 	inet_ntop(AF_INET, &((sockaddr_in*)remoteAddr)->sin_addr, str, 20);
 	acceptRequest_--;
 	acceptedRequest_++;
-	TRACE("%d recv connection from %s, thread id = %d\n", acceptedRequest_, str, GetCurrentThreadId());
+	TRACE_IF(LOG_LOGIN, "%d recv connection from %s, thread id = %d\n", acceptedRequest_, str, GetCurrentThreadId());
 	onRecv(ol, bytes, key);
 }
 
@@ -165,19 +167,18 @@ void ChatServer::onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 	}
 }
 
-void ChatServer::addSocketMap(SOCKET so, ClientState* cs) 
+void ChatServer::addSocketMap(const std::wstring& username, const ClientState& cs)
 {
 	std::lock_guard<std::mutex> g(mapMutex_);
-	connMap_[so] = *cs;
+	connMap_[username] = cs;
 }
 
 bool ChatServer::getClientByUsername(const std::wstring& username, ClientState* cs)
 {
 	std::lock_guard<std::mutex> g(mapMutex_);
-
 	if (!connMap_.count(username))
 		return false;
-	*cs = connMap_[username];
+	*cs = connMap_.at(username);
 	return true;
 }
 
@@ -197,11 +198,11 @@ void ChatServer::updateUserlist()
 	for (auto& item : connMap_) {
 		stream.writeString(item.second.username);
 	}
-	auto pSize = stream.getBuff() + 4;
+	auto pSize = stream.getBuf() + 4;
 	*pSize = stream.getSize();
 	for (auto& item : connMap_) {
 		auto cs = item.second;
-		send(&cs, stream.getBuff(), stream.getSize());
+		send(&cs, stream.getBuf(), stream.getSize());
 	}
 }
 
@@ -217,8 +218,10 @@ void ChatServer::send(ClientState* cs, char* buff, int len)
 	wsaBuf.len = len;
 	assert(cs->sendOl && cs->sendOl->getNetType() == net::kNetType_Send);
 	int ret = WSASend(cs->sendOl->getSocket(), &wsaBuf, 1, NULL, 0, cs->sendOl, NULL);
+	int errcode = WSAGetLastError();
 	if (ret != 0) {
-		assert(WSAGetLastError() == WSA_IO_PENDING);
+		TRACE_IF(LOG_IOCP, "wsasend error %d\n", errcode);
+		assert(errcode == WSA_IO_PENDING);
 	}
 }
 
@@ -227,18 +230,24 @@ bool ChatServer::quit()
 	quit_ = true;
 	return true;
 }
-void ChatServer::onCmdLogin(LoginCommand* loginCmd, ClientState* cs)
+void ChatServer::onCmdLogin(LoginCommand* loginCmd, ChatOverlappedData* ol)
 {
 	std::wstring username = loginCmd->getUsername();
 	std::wstring password = loginCmd->getPassword();
+
+	ClientState cs;
+	cs.username = username;
+	cs.recvOl = ol;
+	cs.sendOl = nullptr;
 	addSocketMap(username, cs);
+
 	SockStream stream;
 	stream.writeInt(net::kCommandType_LoginAck);
 	stream.writeInt(0);
 	stream.writeInt(1);
-	auto pSize = stream.getBuff() + 4;
+	auto pSize = stream.getBuf() + 4;
 	*pSize = stream.getSize();
-	send(cs, stream.getBuff(), stream.getSize());
+	send(&cs, stream.getBuf(), stream.getSize());
 	updateUserlist();
 }
 
@@ -250,9 +259,12 @@ void ChatServer::queueRecvCmdRequest(ChatOverlappedData* ol)
 	wsaBuf[0].len = buf.size();
 	DWORD flags = 0;
 	ol->setNetType(net::kNetType_Recv);
+	TRACE("queue an recv request for ol %x\n", ol);
 	int err = WSARecv(ol->getSocket(), wsaBuf, 1, NULL, &flags, ol, NULL);
+	int errcode = WSAGetLastError();
 	if (err != 0) {
-		assert(GetLastError() == WSA_IO_PENDING);
+		TRACE_IF(LOG_IOCP, "wsarecv error %d\n", errcode);
+		assert(errcode == WSA_IO_PENDING);
 	}
 }
 
@@ -346,7 +358,7 @@ ChatCommand* ChatServer::getCommand(char* recvBuf, int bytes, buffer& cmdBuf)
 	return nullptr;
 }
 
-void ChatServer::onCmdMessage(MessageCommand* messageCmd, ClientState* cs)
+void ChatServer::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol)
 {
 	auto sender = messageCmd->getSender();
 	auto recver = messageCmd->getReceiver();
@@ -355,23 +367,26 @@ void ChatServer::onCmdMessage(MessageCommand* messageCmd, ClientState* cs)
 	stream.writeInt(net::kCommandType_Message);
 	stream.writeInt(0);
 	stream.writeString(sender);
+	stream.writeString(recver);
 	stream.writeString(msg);
-	auto pSize = stream.getBuff() + 4;
+	auto pSize = stream.getBuf() + 4;
 	*pSize = stream.getSize();
+	TRACE(L"%s send %s to %s\n", sender.c_str(), recver.c_str(), msg.c_str());
 	if (recver == L"all") {
 		std::lock_guard<std::mutex> g(mapMutex_);
 		for (auto& item : connMap_) {
 			auto cs = item.second;
-			send(&cs, stream.getBuff(), stream.getSize());
+			send(&cs, stream.getBuf(), stream.getSize());
 		}
 	} else {
 		ClientState cs;
 		if (getClientByUsername(recver, &cs)) {
-			send(&cs, stream.getBuff(), stream.getSize());
+			send(&cs, stream.getBuf(), stream.getSize());
 		}
 	}
 }
 
 bool ChatServer::chatDataToClientState(ChatOverlappedData* ol, ClientState* cs)
 {
+	return false;
 }

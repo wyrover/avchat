@@ -30,17 +30,17 @@ private:
 		int& neededSize, std::vector<ChatCommand*>& cmdVec);
 	ChatCommand* getCommand(char* recvBuf, int bytes, buffer& cmdBuf);
 
-	void onCmdLogin(LoginCommand* loginCmd, ClientState* cs);
-	void onCmdMessage(MessageCommand* messageCmd, ClientState* cs);
+	void onCmdLogin(LoginCommand* loginCmd, ChatOverlappedData* ol);
+	void onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol);
 
 	void updateUserlist();
-	void addSocketMap(SOCKET so, ClientState* cs);
+	void addSocketMap(const std::wstring& username, const ClientState& cs);
 	bool getClientByUsername(const std::wstring& username, ClientState* cs);
 	void removeClientByUsername(const std::wstring& username);
 	void send(ClientState* ol, char* buff, int len);
 	void queueRecvCmdRequest(ChatOverlappedData* ol);
 
-	std::map<SOCKET, ClientState> connMap_;
+	std::map<std::wstring, ClientState> connMap_;
 	std::mutex mapMutex_;
 	SOCKET listenSock_;
 	HANDLE hComp_;

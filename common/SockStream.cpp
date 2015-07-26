@@ -86,7 +86,7 @@ bool SockStream::getBool()
 	return value;
 }
 
-char* SockStream::getBuff()
+char* SockStream::getBuf()
 {
 	return buff_;
 }

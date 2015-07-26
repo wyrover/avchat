@@ -37,6 +37,7 @@ std::wstring MessageCommand::getMessage() const
 MessageCommand* MessageCommand::Parse(SockStream* stream)
 {
 	MessageCommand* cmd = new MessageCommand();
+	auto size = stream->getInt();
 	auto sender = stream->getString();
 	auto recver = stream->getString();
 	auto message = stream->getString();
@@ -48,9 +49,10 @@ void MessageCommand::writeTo(SockStream* stream)
 {
 	int size = 0;
 	size += stream->writeInt(type_);
-	int* psize = (int*)stream->getCurrPtr();
+	size += stream->writeInt(0); //dummy size
 	size += stream->writeString(sender_);
 	size += stream->writeString(recver_);
 	size += stream->writeString(message_);
-	*psize = size;
+	auto sizePtr = (int*)(stream->getBuf() + 4);
+	*sizePtr = size;
 }

@@ -20,7 +20,7 @@ public:
 	float getFloat();
 	bool getBool();
 
-	char* getBuff();
+	char* getBuf();
 	char* getCurrPtr();
 	size_t getSize();
 

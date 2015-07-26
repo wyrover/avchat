@@ -19,6 +19,7 @@ public:
 	std::vector<std::wstring> getUserList();
 	void quit();
 	void run();
+	bool isValid();
 	
 private:
 	bool queueCompletionStatus();
@@ -33,6 +34,7 @@ private:
 	void onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol);
 	void queueRecvCmdRequest(ChatOverlappedData* ol);
 	void send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol);
+	void waitRun();
 
 private:
 	bool loggedIn_;
@@ -44,5 +46,7 @@ private:
 	std::vector<std::wstring> userList_;
 	std::wstring userName_;
 	std::mutex userMutex_;
+	HANDLE hRun_;
+	bool valid_;
 	ChatOverlappedData* ol;
 };

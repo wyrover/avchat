@@ -29,21 +29,23 @@ int _tmain(int argc, _TCHAR* argv[])
 	assert(err == 0);
 
 	int port = std::stoi(argv[2]);
-	std::vector<std::thread> threads;
-	ChatClient* client = new ChatClient(L"127.0.0.1", 2333);
-
-	for (int i = 0; i < 10; ++i) {
-		threads.push_back(std::thread([] {
-			for (int i = 0; i < 1024; ++i) {
-				ChatClient* client = new ChatClient(L"127.0.0.1", 2333);
-				client->loginIn(L"keke", L"haha");
-			}
-		}));
+	HANDLE hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+	ChatClient* clientA = nullptr;
+	ChatClient* clientB = nullptr;
+	std::thread th1([&clientA] {
+		clientA = new ChatClient(L"127.0.0.1", 2333);
+		clientA->loginIn(L"clientA", L"clientA");
+	});
+	std::thread th2([&clientB] {
+		clientB = new ChatClient(L"127.0.0.1", 2333);
+		clientB->loginIn(L"clientB", L"clientB");
+	});
+	while (!clientA->isValid() || !clientB->isValid()) {
+		Sleep(100);
 	}
-
-	for (auto& thread : threads) {
-		thread.join();
-	}
+	clientA->sendMessage(L"clientB", L"hello from client a");
+	th1.join();
+	th2.join();
 	WSACleanup();
 	return 0;
 }

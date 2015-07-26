@@ -13,6 +13,8 @@
 #include <mutex>
 #include <atomic>
 #include <vector>
+#include <string>
+#include <condition_variable>
 
 // TODO: reference additional headers your program requires here
 #include <stdio.h>

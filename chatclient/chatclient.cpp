@@ -19,6 +19,8 @@ static const int kCompKey = 0x1234;
 ChatClient::ChatClient(const std::wstring& ipaddr, int port)
 {
 	InetPton(AF_INET, ipaddr.c_str(), &serverAddr_);
+	hRun_ = CreateEvent(NULL, FALSE, FALSE, NULL);
+	valid_ = false;
 }
 
 ChatClient::~ChatClient()
@@ -40,7 +42,7 @@ bool ChatClient::loginIn(const std::wstring& username, const std::wstring& passw
 	cmd.set(username, password);
 	SockStream stream;
 	cmd.writeTo(&stream);
-	ret = ::send(sock_, stream.getBuff(), stream.getSize(), 0);
+	ret = ::send(sock_, stream.getBuf(), stream.getSize(), 0);
 	if (ret == SOCKET_ERROR)
 		return false;
 
@@ -50,17 +52,29 @@ bool ChatClient::loginIn(const std::wstring& username, const std::wstring& passw
 	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)sock_, hComp_, kCompKey, 0);
 	assert(hComp2 == hComp_);
 
-	queueRecvCmdRequest(nullptr);
+	buffer buf(100);
+
+	int retSize = ::recv(sock_, buf.data(), buf.size(), 0);
+	if (retSize) {
+		SockStream ss(buf.data(), retSize);
+		assert(net::kCommandType_LoginAck == ss.getInt());
+		auto cmd = LoginAckCommand::Parse(&ss);
+		TRACE("login result cmd = %d\n", cmd->getResult());
+		valid_ = true;
+		SetEvent(hRun_);
+		run();
+	}
 	return true;
 }
 
 void ChatClient::sendMessage(const std::wstring& username, const std::wstring& message)
 {
+	waitRun();
 	MessageCommand command;
 	command.set(userName_, username, message);
 	SockStream ss;
 	command.writeTo(&ss);
-	send(sock_, ss.getBuff(), ss.getSize(), nullptr);
+	send(sock_, ss.getBuf(), ss.getSize(), nullptr);
 }
 
 std::vector<std::wstring> ChatClient::getUserList()
@@ -72,11 +86,17 @@ std::vector<std::wstring> ChatClient::getUserList()
 void ChatClient::run()
 {
 	TRACE("chatclient::run %d\n", GetCurrentThreadId());
+	queueRecvCmdRequest(nullptr);
 	while (!quit_) {
 		if (!queueCompletionStatus()) {
 			Sleep(100);
 		}
 	}
+}
+
+bool ChatClient::isValid()
+{
+	return valid_;
 }
 
 void ChatClient::quit()
@@ -195,7 +215,7 @@ ChatCommand* ChatClient::getCommand(char* recvBuf, int bytes, buffer& cmdBuf)
 		case net::kCommandType_UserList:
 		{
 			auto cmd = UserListCommand::Parse(&stream);
-			break;
+			return cmd;
 		}
 		default: {
 			assert(false);
@@ -215,6 +235,7 @@ void ChatClient::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 	auto sender = messageCmd->getSender();
 	auto recver = messageCmd->getReceiver();
 	auto msg = messageCmd->getMessage();
+	TRACE(L"new message from %s: %s\n", sender.c_str(), msg.c_str());
 	if (controller_) {
 		controller_->onNewMessage(sender, msg);
 	}
@@ -263,7 +284,7 @@ void ChatClient::queueRecvCmdRequest(ChatOverlappedData* ol)
 
 void ChatClient::send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol)
 {
-	if (ol) {
+	if (!ol) {
 		ol = new ChatOverlappedData(net::kNetType_Send);
 		ol->setSocket(sock_);
 	}
@@ -275,4 +296,9 @@ void ChatClient::send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol
 	if (ret != 0) {
 		assert(WSAGetLastError() == WSA_IO_PENDING);
 	}
+}
+
+void ChatClient::waitRun()
+{
+	WaitForSingleObject(hRun_, INFINITE);
 }
