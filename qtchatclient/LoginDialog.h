@@ -3,7 +3,7 @@
 #include <QDialog>
 #include "ui_logindialog.h"
 class ChatClient;
-class LoginDialog : public QDialog, public Ui::Dialog
+class LoginDialog : public QDialog, public Ui::LoginDialog
 {
 	Q_OBJECT
 public:

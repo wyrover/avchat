@@ -22,7 +22,7 @@ public:
 	ChatClient(const std::wstring& serverAddr, int port);
 	~ChatClient();
 	bool login(const std::wstring& username, const std::wstring& password);
-	void sendMessage(const std::wstring& username, const std::wstring& message);
+	void sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
 	void sendFile(const std::wstring& username, const std::wstring& filePath);
 	void setController(IChatClientController* controller);
 	std::vector<std::wstring> getUserList();
@@ -30,6 +30,7 @@ public:
 	void quit();
 	bool isValid();
 	void run();
+	std::wstring getUsername();
 	
 private:
 	bool queueCompletionStatus();

@@ -12,11 +12,12 @@ MessageCommand::~MessageCommand()
 {
 }
 
-void MessageCommand::set(const std::wstring& sender, const std::wstring& recv, const std::wstring& message)
+void MessageCommand::set(const std::wstring& sender, const std::wstring& recv, const std::wstring& message, time_t timestamp)
 {
 	sender_ = sender;
 	recver_ = recv;
 	message_ = message;
+	timeStamp_ = timestamp;
 }
 
 std::wstring MessageCommand::getSender() const
@@ -42,8 +43,7 @@ MessageCommand* MessageCommand::Parse(SockStream* stream)
 	auto recver = stream->getString();
 	auto timestamp = stream->getInt64();
 	auto message = stream->getString();
-	cmd->set(sender, recver, message);
-	cmd->timeStamp_ = timestamp;
+	cmd->set(sender, recver, message, timestamp);
 	return cmd;
 }
 
@@ -54,7 +54,7 @@ void MessageCommand::writeTo(SockStream* stream)
 	size += stream->writeInt(0); //dummy size
 	size += stream->writeString(sender_);
 	size += stream->writeString(recver_);
-	size += stream->writeInt64(time(NULL));
+	size += stream->writeInt64(timeStamp_);
 	size += stream->writeString(message_);
 	auto sizePtr = (int*)(stream->getBuf() + 4);
 	*sizePtr = size;

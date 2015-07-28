@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'logindialog.ui'
 **
-** Created by: Qt User Interface Compiler version 5.4.2
+** Created by: Qt User Interface Compiler version 5.5.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -21,7 +21,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Ui_Dialog
+class Ui_LoginDialog
 {
 public:
     QDialogButtonBox *buttonBox;
@@ -67,16 +67,16 @@ public:
 
     void retranslateUi(QDialog *Dialog)
     {
-        Dialog->setWindowTitle(QApplication::translate("Dialog", "Dialog", 0));
-        label->setText(QApplication::translate("Dialog", "\347\224\250\346\210\267\345\220\215", 0));
-        label_2->setText(QApplication::translate("Dialog", "\345\257\206\347\240\201", 0));
+        Dialog->setWindowTitle(QApplication::translate("LoginDialog", "Dialog", 0));
+        label->setText(QApplication::translate("LoginDialog", "\347\224\250\346\210\267\345\220\215", 0));
+        label_2->setText(QApplication::translate("LoginDialog", "\345\257\206\347\240\201", 0));
         label_3->setText(QString());
     } // retranslateUi
 
 };
 
 namespace Ui {
-    class Dialog: public Ui_Dialog {};
+    class LoginDialog: public Ui_LoginDialog {};
 } // namespace Ui
 
 QT_END_NAMESPACE

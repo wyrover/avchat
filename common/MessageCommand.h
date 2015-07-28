@@ -7,7 +7,7 @@ class MessageCommand : public ChatCommand
 public:
 	MessageCommand();
 	~MessageCommand();
-	void set(const std::wstring& sender, const std::wstring& recv, const std::wstring& message);
+	void set(const std::wstring& sender, const std::wstring& recv, const std::wstring& message, time_t timestamp);
 	std::wstring getSender() const;
 	std::wstring getReceiver() const;
 	std::wstring getMessage() const;

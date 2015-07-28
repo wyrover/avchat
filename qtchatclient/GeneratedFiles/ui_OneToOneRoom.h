@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'OneToOneRoom.ui'
 **
-** Created by: Qt User Interface Compiler version 5.4.2
+** Created by: Qt User Interface Compiler version 5.5.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -22,7 +22,7 @@
 
 QT_BEGIN_NAMESPACE
 
-class Ui_Dialog
+class Ui_UiOneToOneRoom
 {
 public:
     QDialogButtonBox *buttonBox;
@@ -59,14 +59,14 @@ public:
 
     void retranslateUi(QDialog *Dialog)
     {
-        Dialog->setWindowTitle(QApplication::translate("Dialog", "Dialog", 0));
-        toolButton->setText(QApplication::translate("Dialog", "...", 0));
+        Dialog->setWindowTitle(QApplication::translate("UiOneToOneRoom", "Dialog", 0));
+        toolButton->setText(QApplication::translate("UiOneToOneRoom", "...", 0));
     } // retranslateUi
 
 };
 
 namespace Ui {
-    class Dialog: public Ui_Dialog {};
+    class UiOneToOneRoom: public Ui_UiOneToOneRoom {};
 } // namespace Ui
 
 QT_END_NAMESPACE

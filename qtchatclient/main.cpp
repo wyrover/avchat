@@ -4,7 +4,7 @@
 #include <QtWidgets/QApplication>
 #include <assert.h>
 #include <memory.>
-
+Q_DECLARE_METATYPE(int64_t)
 int main(int argc, char *argv[])
 {
 	QApplication a(argc, argv);
@@ -15,12 +15,12 @@ int main(int argc, char *argv[])
 	wVersionRequested = MAKEWORD(2, 2);
 	err = WSAStartup(wVersionRequested, &wsaData);
 	assert(err == 0);
+	qRegisterMetaType<int64_t>();
 	std::unique_ptr<ChatClient> client(new ChatClient(L"127.0.0.1", 2333));
 	LoginDialog dlg(client.get());
 	auto result = dlg.exec();
 	if (result == QDialog::Rejected)
 		return 1;
-
 
 	qtchatclient w(client.get());
 	w.show();

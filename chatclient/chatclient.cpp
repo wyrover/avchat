@@ -67,10 +67,10 @@ bool ChatClient::login(const std::wstring& username, const std::wstring& passwor
 	return true;
 }
 
-void ChatClient::sendMessage(const std::wstring& username, const std::wstring& message)
+void ChatClient::sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp)
 {
 	MessageCommand command;
-	command.set(userName_, username, message);
+	command.set(userName_, username, message, timestamp);
 	SockStream ss;
 	command.writeTo(&ss);
 	send(sock_, ss.getBuf(), ss.getSize(), nullptr);
@@ -105,11 +105,9 @@ void ChatClient::quit()
 
 bool ChatClient::queueCompletionStatus()
 {
-	TRACE_IF(LOG, "try to queue completion status\n");
 	DWORD bytes;
 	ULONG_PTR key; ChatOverlappedData* ol;
 	if (!GetQueuedCompletionStatus(hComp_, &bytes, &key, (LPOVERLAPPED*)&ol, 0)) {
-		TRACE_IF(LOG, "no queued completion status\n");
 		return false;
 	}
 	int type = ol->getNetType();
@@ -334,4 +332,9 @@ void ChatClient::sendFile(const std::wstring& username, const std::wstring& file
 	size += ss.writeString(::PathFindFileName(fileList.c_str()));
 	auto sizePtr = (int*)(ss.getBuf() + 4);
 	*sizePtr = size;
+}
+
+std::wstring ChatClient::getUsername()
+{
+	return userName_;
 }

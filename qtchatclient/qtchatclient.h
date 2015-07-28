@@ -3,10 +3,10 @@
 
 #include <QtWidgets/QMainWindow>
 #include <QStringListModel>
+#include <stdint.h>
 #include "ui_qtchatclient.h"
 #include "../chatclient/ChatClient.h"
 
-Q_DECLARE_METATYPE(std::wstring)
 class OneToOneRoom;
 
 //¹«¹²ÁÄÌìÊÒ
@@ -23,14 +23,16 @@ public:
 private:
 	ChatClient* client_;
 	QStringListModel userListModel_;
-private slots:
-	void onUiNewUserList(const std::vector<std::wstring>& userList);
-	void onUiNewMessage(const std::wstring& sender, const std::wstring& username, int64_t timestamp, const std::wstring& message);
-	void onSendClicked();
-signals:
-	void uiNewUserList(const std::vector<std::wstring>& userList);
-	void uiNewMessage(const std::wstring& sender, const std::wstring& recver, int64_t timestamp, const std::wstring& message);
 	std::map<std::wstring, OneToOneRoom*> oneMap_;
+	OneToOneRoom* getRoom(const std::wstring& username);
+
+private slots:
+	void onUiNewMessage(const QString& sender, const QString& username, qint64 timestamp, const QString& message);
+	void onSendClicked();
+	void onUsernameDoubleClicked(const QModelIndex& index);
+
+signals:
+	void uiNewMessage(const QString& sender, const QString& recver, qint64 timestamp, const QString& message);
 };
 
 #endif // QTCHATCLIENT_H

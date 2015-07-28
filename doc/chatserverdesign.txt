@@ -1,0 +1,33 @@
+first design the server core interface.
+===
+out interface.
+chatserver.
+	setListenPort(port);
+	setLogFilePath(c);
+	start();
+	stop();
+===
+internal design:
+one multiplex connection between the server and the client.
+after accept + login:
+	queue-send:
+		anytime need to queue the request.
+	queue-recv:	
+		just one command. then queuerequest.(done);
+===
+问题:
+1. async-recv一直使用同一个buffer可以吗?
+按照msdn应该是可以的.
+===
+chatclient的设计.
+test-driven.
+///
+chatclient.
+	bool login(const std::wstring& username, const std::wstring& password);
+	void sendMessage(const std::wstring& username, const std::wstring& message);
+	const std::vector<std::wstring> getUserList();
+///
+	void onCmdLoginAck();
+	void onCmdUserList();
+///
+interface the structure should just lik
