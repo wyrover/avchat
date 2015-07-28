@@ -20,6 +20,8 @@ int main(int argc, char *argv[])
 	auto result = dlg.exec();
 	if (result == QDialog::Rejected)
 		return 1;
+
+
 	qtchatclient w(client.get());
 	w.show();
 	int ret = a.exec();

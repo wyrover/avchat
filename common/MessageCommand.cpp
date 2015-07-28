@@ -40,8 +40,10 @@ MessageCommand* MessageCommand::Parse(SockStream* stream)
 	auto size = stream->getInt();
 	auto sender = stream->getString();
 	auto recver = stream->getString();
+	auto timestamp = stream->getInt64();
 	auto message = stream->getString();
 	cmd->set(sender, recver, message);
+	cmd->timeStamp_ = timestamp;
 	return cmd;
 }
 
@@ -52,7 +54,13 @@ void MessageCommand::writeTo(SockStream* stream)
 	size += stream->writeInt(0); //dummy size
 	size += stream->writeString(sender_);
 	size += stream->writeString(recver_);
+	size += stream->writeInt64(time(NULL));
 	size += stream->writeString(message_);
 	auto sizePtr = (int*)(stream->getBuf() + 4);
 	*sizePtr = size;
+}
+
+int64_t MessageCommand::getTimeStamp() const
+{
+	return timeStamp_;
 }

@@ -231,10 +231,11 @@ void ChatClient::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 {
 	auto sender = messageCmd->getSender();
 	auto recver = messageCmd->getReceiver();
+	auto timestamp = messageCmd->getTimeStamp();
 	auto msg = messageCmd->getMessage();
 	TRACE(L"new message from %s: %s\n", sender.c_str(), msg.c_str());
 	if (controller_) {
-		controller_->onNewMessage(sender, recver, msg);
+		controller_->onNewMessage(sender, recver, timestamp, msg);
 	}
 }
 

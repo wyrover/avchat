@@ -15,7 +15,7 @@ class qtchatclient : public QMainWindow, public IChatClientController, public Ui
 public:
 	qtchatclient(ChatClient* client, QWidget *parent = 0);
 	~qtchatclient();
-	virtual void onNewMessage(const std::wstring& sender, const std::wstring& username, const std::wstring& message);
+	virtual void onNewMessage(const std::wstring& sender, const std::wstring& username, int64_t timestamp, const std::wstring& message);
 	virtual void onNewUserList();
 
 private:
@@ -23,11 +23,11 @@ private:
 	QStringListModel userListModel_;
 private slots:
 	void onUiNewUserList(const std::vector<std::wstring>& userList);
-	void onUiNewMessage(const std::wstring& sender, const std::wstring& username, const std::wstring& message);
+	void onUiNewMessage(const std::wstring& sender, const std::wstring& username, int64_t timestamp, const std::wstring& message);
 	void onSendClicked();
 signals:
 	void uiNewUserList(const std::vector<std::wstring>& userList);
-	void uiNewMessage(const std::wstring& sender, const std::wstring& recver, const std::wstring& message);
+	void uiNewMessage(const std::wstring& sender, const std::wstring& recver, int64_t timestamp, const std::wstring& message);
 };
 
 #endif // QTCHATCLIENT_H

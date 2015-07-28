@@ -7,6 +7,7 @@ public:
 	SockStream(char* buff, size_t len);
 	~SockStream();
 	int writeInt(int value);
+	int writeInt64(int64_t value);
 	int writeString(const std::wstring& str);
 	int writeDouble(double value);
 	int writeFloat(float value);
@@ -15,6 +16,7 @@ public:
 	int write(char ch);
 
 	int getInt();
+	int64_t getInt64();
 	std::wstring getString();
 	double getDouble();
 	float getFloat();

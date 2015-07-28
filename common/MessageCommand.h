@@ -11,10 +11,12 @@ public:
 	std::wstring getSender() const;
 	std::wstring getReceiver() const;
 	std::wstring getMessage() const;
+	int64_t getTimeStamp() const;
 	static MessageCommand* Parse(SockStream* stream);
 	virtual void writeTo(SockStream* stream);
 private:
 	std::wstring sender_;
 	std::wstring recver_;
 	std::wstring message_;
+	time_t timeStamp_;
 };

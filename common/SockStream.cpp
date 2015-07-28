@@ -24,6 +24,11 @@ int SockStream::writeInt(int value)
 	return write((char*)&value, 4);
 }
 
+int SockStream::writeInt64(int64_t value)
+{
+	return write((char*)&value, 8);
+}
+
 int SockStream::writeString(const std::wstring& str)
 {
 	int len = writeInt(str.length());
@@ -53,6 +58,17 @@ int SockStream::getInt()
 	curr_ += 4;
 	return value;
 }
+
+int64_t SockStream::getInt64()
+{
+	char* ptr = buff_ + curr_;
+	int64_t value = *(int64_t*)ptr;
+	curr_ += 8;
+	return value;
+}
+
+
+
 
 std::wstring SockStream::getString()
 {
@@ -135,3 +151,4 @@ char* SockStream::getCurrPtr()
 	else
 		return buff_ + size_;
 }
+

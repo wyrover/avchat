@@ -368,6 +368,7 @@ void ChatServer::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 	stream.writeInt(0);
 	stream.writeString(sender);
 	stream.writeString(recver);
+	stream.writeInt64(time(NULL));
 	stream.writeString(msg);
 	auto pSize = stream.getBuf() + 4;
 	*pSize = stream.getSize();

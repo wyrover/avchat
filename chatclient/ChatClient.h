@@ -12,7 +12,7 @@ class ChatCommand;
 
 class IChatClientController {
 public:
-	virtual void onNewMessage(const std::wstring& sender, const std::wstring& recver, const std::wstring& message) = 0;
+	virtual void onNewMessage(const std::wstring& sender, const std::wstring& recver, int64_t timestamp, const std::wstring& message) = 0;
 	virtual void onNewUserList() = 0;
 };
 
