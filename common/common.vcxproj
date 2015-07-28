@@ -80,6 +80,7 @@
     <ClInclude Include="buffer.h" />
     <ClInclude Include="ChatCommand.h" />
     <ClInclude Include="ChatOverlappedData.h" />
+    <ClInclude Include="FileUtils.h" />
     <ClInclude Include="LoginCommand.h" />
     <ClInclude Include="MessageCommand.h" />
     <ClInclude Include="NetConstants.h" />
@@ -92,6 +93,7 @@
   <ItemGroup>
     <ClCompile Include="ChatCommand.cpp" />
     <ClCompile Include="ChatOverlappedData.cpp" />
+    <ClCompile Include="FileUtils.cpp" />
     <ClCompile Include="LoginCommand.cpp" />
     <ClCompile Include="MessageCommand.cpp" />
     <ClCompile Include="SockStream.cpp" />

@@ -97,6 +97,7 @@
     </ClCompile>
     <ClCompile Include="LoginDialog.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="OneToOneRoom.cpp" />
     <ClCompile Include="qtchatclient.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -126,7 +127,9 @@
   <ItemGroup>
     <ClInclude Include="ChatClientController.h" />
     <ClInclude Include="GeneratedFiles\ui_logindialog.h" />
+    <ClInclude Include="GeneratedFiles\ui_OneToOneRoom.h" />
     <ClInclude Include="GeneratedFiles\ui_qtchatclient.h" />
+    <ClInclude Include="OneToOneRoom.h" />
     <CustomBuild Include="LoginDialog.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing LoginDialog.h...</Message>
@@ -166,6 +169,18 @@
     <ProjectReference Include="..\chatclient\chatclient.vcxproj">
       <Project>{c6f7db4a-1329-48ed-bcd9-202a6c26fe81}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="OneToOneRoom.ui">
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Uic%27ing %(Identity)...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Uic%27ing %(Identity)...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

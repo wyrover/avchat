@@ -23,6 +23,7 @@ public:
 	~ChatClient();
 	bool login(const std::wstring& username, const std::wstring& password);
 	void sendMessage(const std::wstring& username, const std::wstring& message);
+	void sendFile(const std::wstring& username, const std::wstring& filePath);
 	void setController(IChatClientController* controller);
 	std::vector<std::wstring> getUserList();
 	void startThread();

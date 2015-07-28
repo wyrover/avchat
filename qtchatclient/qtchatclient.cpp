@@ -1,6 +1,7 @@
 #include "qtchatclient.h"
 #include <QStringList>
 #include <ATLComTime.h>
+#include "OneToOneRoom.h"
 
 qtchatclient::qtchatclient(ChatClient* client, QWidget *parent)
 	: QMainWindow(parent), client_(client)
@@ -22,7 +23,15 @@ qtchatclient::~qtchatclient()
 void qtchatclient::onNewMessage(const std::wstring& sender, const std::wstring& username, int64_t timestamp, const std::wstring& message)
 {
 	//emit uiNewMessage(sender, username, message);
-	onUiNewMessage(sender, username, timestamp, message);
+	if (username == L"all") {
+		onUiNewMessage(sender, username, timestamp, message);
+	} else {
+		if (oneMap_.count(username)) {
+			auto oneRoom = new OneToOneRoom();
+			oneMap_[username] = oneRoom;
+		} 
+		oneMap_[username]->onNewMessage(sender, timestamp, message);
+	}
 }
 
 void qtchatclient::onNewUserList()

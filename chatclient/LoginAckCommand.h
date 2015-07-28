@@ -10,7 +10,7 @@ public:
 	int getResult();
 	static LoginAckCommand* Parse(SockStream* stream);
 	void writeTo(SockStream* ss);
+
 private:
 	int result_;
 };
-

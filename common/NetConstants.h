@@ -12,6 +12,8 @@ namespace net
 		kCommandType_LoginAck,
 		kCommandType_Message,
 		kCommandType_UserList,
-		kCommandType_File,
+		kCommandType_FileRequest,
+		kCommandType_FileRequestAck,
+		kCommandType_FileTransfer,
 	};
 }

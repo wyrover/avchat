@@ -9,9 +9,11 @@
 #include "../common/NetConstants.h"
 #include "../common/UserListCommand.h"
 #include "../common/LoginCommand.h"
+#include "../common/FileUtils.h"
 #include "LoginAckCommand.h"
 #include "ChatClient.h"
 #include <process.h>
+#include "Shlwapi.h"
 
 #define LOG 1
 
@@ -139,6 +141,10 @@ void ChatClient::dispatchCommand(ChatOverlappedData* ol, ChatCommand* cmd)
 			onCmdUserList(dynamic_cast<UserListCommand*>(cmd)->getUserList(), ol);
 			break;
 		}
+		case net::kCommandType_FileRequestAck:
+		{
+			break;
+		}
 		default:
 			break;
 	}
@@ -213,6 +219,9 @@ ChatCommand* ChatClient::getCommand(char* recvBuf, int bytes, buffer& cmdBuf)
 		{
 			auto cmd = UserListCommand::Parse(&stream);
 			return cmd;
+		}
+		case net::kCommandType_FileRequestAck:
+		{
 		}
 		default: {
 			assert(false);
@@ -310,4 +319,19 @@ void ChatClient::startThread()
 void ChatClient::setController(IChatClientController* controller)
 {
 	controller_ = controller;
+}
+
+void ChatClient::sendFile(const std::wstring& username, const std::wstring& fileList)
+{
+	SockStream ss;
+	int size = 0;
+	size += ss.writeInt(net::kCommandType_FileRequest);
+	size += ss.writeInt(0); //dummy size
+	size += ss.writeString(userName_);
+	size += ss.writeString(username);
+	size += ss.writeInt64(time(NULL));
+	size += ss.writeBool(FileUtils::DirExists(fileList.c_str()));
+	size += ss.writeString(::PathFindFileName(fileList.c_str()));
+	auto sizePtr = (int*)(ss.getBuf() + 4);
+	*sizePtr = size;
 }
