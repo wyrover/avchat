@@ -11,23 +11,24 @@
 #include "../common/LoginCommand.h"
 #include "LoginAckCommand.h"
 #include "ChatClient.h"
+#include <process.h>
 
-#define LOG 0
+#define LOG 1
 
 static const int kCompKey = 0x1234;
 
 ChatClient::ChatClient(const std::wstring& ipaddr, int port)
 {
 	InetPton(AF_INET, ipaddr.c_str(), &serverAddr_);
-	hRun_ = CreateEvent(NULL, FALSE, FALSE, NULL);
-	valid_ = false;
+	controller_ = nullptr;
+	quit_ = false;
 }
 
 ChatClient::~ChatClient()
 {
 }
 
-bool ChatClient::loginIn(const std::wstring& username, const std::wstring& password)
+bool ChatClient::login(const std::wstring& username, const std::wstring& password)
 {
 	sock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	sockaddr_in addr = { 0 };
@@ -46,12 +47,6 @@ bool ChatClient::loginIn(const std::wstring& username, const std::wstring& passw
 	if (ret == SOCKET_ERROR)
 		return false;
 
-	hComp_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-	assert(hComp_ != NULL);
-
-	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)sock_, hComp_, kCompKey, 0);
-	assert(hComp2 == hComp_);
-
 	buffer buf(100);
 
 	int retSize = ::recv(sock_, buf.data(), buf.size(), 0);
@@ -60,16 +55,18 @@ bool ChatClient::loginIn(const std::wstring& username, const std::wstring& passw
 		assert(net::kCommandType_LoginAck == ss.getInt());
 		auto cmd = LoginAckCommand::Parse(&ss);
 		TRACE("login result cmd = %d\n", cmd->getResult());
-		valid_ = true;
-		SetEvent(hRun_);
-		run();
+		hComp_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+		assert(hComp_ != NULL);
+
+		HANDLE hComp2 = CreateIoCompletionPort((HANDLE)sock_, hComp_, kCompKey, 0);
+		assert(hComp2 == hComp_);
 	}
+	userName_ = username;
 	return true;
 }
 
 void ChatClient::sendMessage(const std::wstring& username, const std::wstring& message)
 {
-	waitRun();
 	MessageCommand command;
 	command.set(userName_, username, message);
 	SockStream ss;
@@ -79,7 +76,7 @@ void ChatClient::sendMessage(const std::wstring& username, const std::wstring& m
 
 std::vector<std::wstring> ChatClient::getUserList()
 {
-	std::lock_guard<std::mutex> lock(userMutex_);
+	std::lock_guard<std::recursive_mutex> lock(userMutex_);
 	return userList_;
 }
 
@@ -237,13 +234,13 @@ void ChatClient::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 	auto msg = messageCmd->getMessage();
 	TRACE(L"new message from %s: %s\n", sender.c_str(), msg.c_str());
 	if (controller_) {
-		controller_->onNewMessage(sender, msg);
+		controller_->onNewMessage(sender, recver, msg);
 	}
 }
 
 void ChatClient::onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol)
 {
-	std::lock_guard<std::mutex> lock(userMutex_);
+	std::lock_guard<std::recursive_mutex> lock(userMutex_);
 	userList_ = userList;
 	if (controller_) {
 		controller_->onNewUserList();
@@ -298,7 +295,18 @@ void ChatClient::send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol
 	}
 }
 
-void ChatClient::waitRun()
+static unsigned int __stdcall keke(void* obj) {
+	auto client = reinterpret_cast<ChatClient*>(obj);
+	client->run();
+	return 1;
+}
+
+void ChatClient::startThread()
 {
-	WaitForSingleObject(hRun_, INFINITE);
+	hThread_ = (HANDLE)_beginthreadex(0, 0, keke, this, 0, &threadId_);
+}
+
+void ChatClient::setController(IChatClientController* controller)
+{
+	controller_ = controller;
 }

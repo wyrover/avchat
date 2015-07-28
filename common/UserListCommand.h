@@ -14,6 +14,6 @@ public:
 
 private:
 	std::vector<std::wstring> userList_;
-	std::mutex userMutex_;
+	std::recursive_mutex userMutex_;
 };
 

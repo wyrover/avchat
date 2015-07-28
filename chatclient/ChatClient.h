@@ -1,11 +1,18 @@
 #pragma once
 
+#include <windows.h>
+#include <mutex>
+#include <string>
+#include <vector>
+#include "../common/buffer.h"
+
 class ChatOverlappedData;
 class MessageCommand;
 class ChatCommand;
+
 class IChatClientController {
 public:
-	virtual void onNewMessage(const std::wstring& username, const std::wstring& message) = 0;
+	virtual void onNewMessage(const std::wstring& sender, const std::wstring& recver, const std::wstring& message) = 0;
 	virtual void onNewUserList() = 0;
 };
 
@@ -14,12 +21,14 @@ class ChatClient
 public:
 	ChatClient(const std::wstring& serverAddr, int port);
 	~ChatClient();
-	bool loginIn(const std::wstring& username, const std::wstring& password);
+	bool login(const std::wstring& username, const std::wstring& password);
 	void sendMessage(const std::wstring& username, const std::wstring& message);
+	void setController(IChatClientController* controller);
 	std::vector<std::wstring> getUserList();
+	void startThread();
 	void quit();
-	void run();
 	bool isValid();
+	void run();
 	
 private:
 	bool queueCompletionStatus();
@@ -34,10 +43,11 @@ private:
 	void onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol);
 	void queueRecvCmdRequest(ChatOverlappedData* ol);
 	void send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol);
-	void waitRun();
 
 private:
 	bool loggedIn_;
+	HANDLE hThread_;
+	unsigned int threadId_;
 	SOCKET sock_;
 	sockaddr_in serverAddr_;
 	bool quit_;
@@ -45,7 +55,7 @@ private:
 	IChatClientController* controller_;
 	std::vector<std::wstring> userList_;
 	std::wstring userName_;
-	std::mutex userMutex_;
+	std::recursive_mutex userMutex_;
 	HANDLE hRun_;
 	bool valid_;
 	ChatOverlappedData* ol;

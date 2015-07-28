@@ -30,7 +30,7 @@ UserListCommand* UserListCommand::Parse(SockStream* stream)
 	int size = stream->getInt();
 	int count = stream->getInt();
 	assert(count > 0);
-	std::lock_guard<std::mutex> guard(cmd->userMutex_);
+	std::lock_guard<std::recursive_mutex> guard(cmd->userMutex_);
 	cmd->userList_.clear();
 	while (count--) {
 		auto username = stream->getString();

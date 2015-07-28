@@ -169,13 +169,13 @@ void ChatServer::onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 
 void ChatServer::addSocketMap(const std::wstring& username, const ClientState& cs)
 {
-	std::lock_guard<std::mutex> g(mapMutex_);
+	std::lock_guard<std::recursive_mutex> g(mapMutex_);
 	connMap_[username] = cs;
 }
 
 bool ChatServer::getClientByUsername(const std::wstring& username, ClientState* cs)
 {
-	std::lock_guard<std::mutex> g(mapMutex_);
+	std::lock_guard<std::recursive_mutex> g(mapMutex_);
 	if (!connMap_.count(username))
 		return false;
 	*cs = connMap_.at(username);
@@ -184,7 +184,7 @@ bool ChatServer::getClientByUsername(const std::wstring& username, ClientState* 
 
 void ChatServer::removeClientByUsername(const std::wstring& username)
 {
-	std::lock_guard<std::mutex> g(mapMutex_);
+	std::lock_guard<std::recursive_mutex> g(mapMutex_);
 	connMap_.erase(username);
 }
 
@@ -193,7 +193,7 @@ void ChatServer::updateUserlist()
 	SockStream stream;
 	stream.writeInt(net::kCommandType_UserList);
 	stream.writeInt(0);
-	std::lock_guard<std::mutex> g(mapMutex_);
+	std::lock_guard<std::recursive_mutex> g(mapMutex_);
 	stream.writeInt(connMap_.size());
 	for (auto& item : connMap_) {
 		stream.writeString(item.second.username);
@@ -373,7 +373,7 @@ void ChatServer::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 	*pSize = stream.getSize();
 	TRACE(L"%s send %s to %s\n", sender.c_str(), recver.c_str(), msg.c_str());
 	if (recver == L"all") {
-		std::lock_guard<std::mutex> g(mapMutex_);
+		std::lock_guard<std::recursive_mutex> g(mapMutex_);
 		for (auto& item : connMap_) {
 			auto cs = item.second;
 			send(&cs, stream.getBuf(), stream.getSize());

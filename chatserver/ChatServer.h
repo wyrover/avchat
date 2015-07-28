@@ -41,7 +41,7 @@ private:
 	void queueRecvCmdRequest(ChatOverlappedData* ol);
 
 	std::map<std::wstring, ClientState> connMap_;
-	std::mutex mapMutex_;
+	std::recursive_mutex mapMutex_;
 	SOCKET listenSock_;
 	HANDLE hComp_;
 	bool chatDataToClientState(ChatOverlappedData* ol, ClientState* cs);
