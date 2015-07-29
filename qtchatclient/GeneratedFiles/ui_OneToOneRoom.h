@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'OneToOneRoom.ui'
 **
-** Created by: Qt User Interface Compiler version 5.5.0
+** Created by: Qt User Interface Compiler version 5.4.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -16,9 +16,9 @@
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QDialogButtonBox>
 #include <QtWidgets/QHeaderView>
-#include <QtWidgets/QTextBrowser>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QToolButton>
+#include <textviewer.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -26,7 +26,7 @@ class Ui_UiOneToOneRoom
 {
 public:
     QDialogButtonBox *buttonBox;
-    QTextBrowser *textBrowser;
+    TextViewer *textBrowser;
     QTextEdit *textEdit;
     QToolButton *toolButton;
 
@@ -40,7 +40,7 @@ public:
         buttonBox->setGeometry(QRect(140, 470, 341, 32));
         buttonBox->setOrientation(Qt::Horizontal);
         buttonBox->setStandardButtons(QDialogButtonBox::Cancel|QDialogButtonBox::Ok);
-        textBrowser = new QTextBrowser(Dialog);
+        textBrowser = new TextViewer(Dialog);
         textBrowser->setObjectName(QStringLiteral("textBrowser"));
         textBrowser->setGeometry(QRect(20, 30, 461, 231));
         textEdit = new QTextEdit(Dialog);

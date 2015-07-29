@@ -1,4 +1,5 @@
 #include "OneToOneRoom.h"
+#include "BubbleTextObject.h"
 #include <assert.h>
 #include <ATLComTime.h>
 
@@ -9,6 +10,8 @@ OneToOneRoom::OneToOneRoom(ChatClient* client, const std::wstring& remote)
 	client_ = client;
 	connect(ui.buttonBox, SIGNAL(rejected()), this, SLOT(onClose()));
 	setWindowTitle(QString("%1->%2").arg(QString::fromStdWString(client_->getUsername()), QString::fromStdWString(remote_)));
+	fa_ = new BubbleTextObject;
+	ui.textBrowser->document()->documentLayout()->registerHandler(BubbleTextObject::type(), fa_);
 }
 
 OneToOneRoom::~OneToOneRoom()
@@ -39,5 +42,12 @@ void OneToOneRoom::addMessage(const std::wstring& username, time_t timestamp, co
 	COleDateTime oleTime((time_t)timestamp);
 	QString timeStr = QString::fromWCharArray(oleTime.Format(VAR_TIMEVALUEONLY).GetBuffer(0));
 	ui.textBrowser->insertHtml(QString(R"(<font color="blue">%1 %2</font><br>)").arg(QString::fromStdWString(username), timeStr));
-	ui.textBrowser->insertPlainText(QString::fromStdWString(message + L"\r\n"));
+
+	QTextCharFormat f;
+	f.setObjectType(fa_->type());
+	f.setProperty(fa_->prop(), QString::fromStdWString(message));
+
+	QTextCursor c(ui.textBrowser->document());
+	c.movePosition(QTextCursor::End);
+	c.insertText(QString(QChar::ObjectReplacementCharacter), f);
 }

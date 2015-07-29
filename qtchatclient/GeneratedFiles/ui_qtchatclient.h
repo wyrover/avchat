@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'qtchatclient.ui'
 **
-** Created by: Qt User Interface Compiler version 5.5.0
+** Created by: Qt User Interface Compiler version 5.4.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -19,10 +19,10 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStatusBar>
-#include <QtWidgets/QTextBrowser>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QToolBar>
 #include <QtWidgets/QWidget>
+#include <textviewer.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -30,7 +30,7 @@ class Ui_qtchatclientClass
 {
 public:
     QWidget *centralWidget;
-    QTextBrowser *textBrowser;
+    TextViewer *textBrowser;
     QListView *userListView;
     QTextEdit *textEdit;
     QPushButton *pushButton;
@@ -45,7 +45,7 @@ public:
         qtchatclientClass->resize(600, 533);
         centralWidget = new QWidget(qtchatclientClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
-        textBrowser = new QTextBrowser(centralWidget);
+        textBrowser = new TextViewer(centralWidget);
         textBrowser->setObjectName(QStringLiteral("textBrowser"));
         textBrowser->setGeometry(QRect(20, 20, 451, 261));
         userListView = new QListView(centralWidget);

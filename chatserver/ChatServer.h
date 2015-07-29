@@ -4,6 +4,7 @@ class ChatOverlappedData;
 class ChatCommand;
 class MessageCommand;
 class LoginCommand;
+class FileRequestCommand;
 
 struct ClientState
 {
@@ -32,6 +33,7 @@ private:
 
 	void onCmdLogin(LoginCommand* loginCmd, ChatOverlappedData* ol);
 	void onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol);
+	void onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol);
 
 	void updateUserlist();
 	void addSocketMap(const std::wstring& username, const ClientState& cs);

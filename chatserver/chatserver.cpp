@@ -5,6 +5,7 @@
 #include "ChatServer.h"
 #include "Utils.h"
 #include "../common/ChatOverlappedData.h"
+#include "../common/FileRequestCommand.h"
 #include "../common/NetConstants.h"
 #include "../common/MessageCommand.h"
 #include "../common/LoginCommand.h"
@@ -384,6 +385,17 @@ void ChatServer::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 		if (getClientByUsername(recver, &cs)) {
 			send(&cs, stream.getBuf(), stream.getSize());
 		}
+	}
+}
+
+void ChatServer::onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol)
+{
+	auto recver = cmd->getRecver();
+	SockStream ss;
+	cmd->writeTo(&ss);
+	ClientState cs;
+	if (getClientByUsername(recver, &cs)) {
+		send(&cs, ss.getBuf(), ss.getSize());
 	}
 }
 

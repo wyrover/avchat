@@ -3,7 +3,7 @@
 #include <QDialog>
 #include "ui_OneToOneRoom.h"
 #include "../chatclient/ChatClient.h"
-
+class BubbleTextObject;
 class OneToOneRoom : public QDialog
 {
 	Q_OBJECT
@@ -18,6 +18,7 @@ private:
 	Ui::UiOneToOneRoom ui;
 	std::wstring remote_;
 	ChatClient* client_;
+	BubbleTextObject* fa_;
 	void onOk();
 	void onClose();
 };

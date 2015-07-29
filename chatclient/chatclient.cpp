@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "../common/ChatOverlappedData.h"
 #include "../common/MessageCommand.h"
+#include "../common/FileRequestCommand.h"
 #include "../common/SockStream.h"
 #include "../common/trace.h"
 #include "../common/NetConstants.h"
@@ -246,6 +247,11 @@ void ChatClient::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 	}
 }
 
+void ChatClient::onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol)
+{
+
+}
+
 void ChatClient::onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol)
 {
 	std::lock_guard<std::recursive_mutex> lock(userMutex_);
@@ -319,22 +325,30 @@ void ChatClient::setController(IChatClientController* controller)
 	controller_ = controller;
 }
 
-void ChatClient::sendFile(const std::wstring& username, const std::wstring& fileList)
+void ChatClient::sendFile(const std::wstring& username, const std::wstring& filePath)
 {
+	auto timestamp = time(NULL);
+	FileRequestCommand cmd;
+	bool isFolder = FileUtils::DirExists(filePath.c_str());
+	int64_t fileSize = -1;
+	if (isFolder) {
+		fileSize = FileUtils::GetFolderSize(filePath.c_str());
+	} else {
+		fileSize = FileUtils::FnGetFileSize(filePath.c_str());
+	}
+	cmd.init(userName_, userName_, filePath, FileUtils::DirExists(filePath.c_str()), fileSize, timestamp);
 	SockStream ss;
-	int size = 0;
-	size += ss.writeInt(net::kCommandType_FileRequest);
-	size += ss.writeInt(0); //dummy size
-	size += ss.writeString(userName_);
-	size += ss.writeString(username);
-	size += ss.writeInt64(time(NULL));
-	size += ss.writeBool(FileUtils::DirExists(fileList.c_str()));
-	size += ss.writeString(::PathFindFileName(fileList.c_str()));
-	auto sizePtr = (int*)(ss.getBuf() + 4);
-	*sizePtr = size;
+	cmd.writeTo(&ss);
+	send(sock_, ss.getBuf(), ss.getSize(), nullptr);
+}
+
+void ChatClient::confirmFileRequet(const std::wstring& remote, time_t timestamp)
+{
+
 }
 
 std::wstring ChatClient::getUsername()
 {
 	return userName_;
 }
+

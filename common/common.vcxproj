@@ -53,7 +53,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>ws2_32.lib</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;Shlwapi.lib;</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -80,6 +80,8 @@
     <ClInclude Include="buffer.h" />
     <ClInclude Include="ChatCommand.h" />
     <ClInclude Include="ChatOverlappedData.h" />
+    <ClInclude Include="FileRequestAckCommand.h" />
+    <ClInclude Include="FileRequestCommand.h" />
     <ClInclude Include="FileUtils.h" />
     <ClInclude Include="LoginCommand.h" />
     <ClInclude Include="MessageCommand.h" />
@@ -93,6 +95,8 @@
   <ItemGroup>
     <ClCompile Include="ChatCommand.cpp" />
     <ClCompile Include="ChatOverlappedData.cpp" />
+    <ClCompile Include="FileRequestAckCommand.cpp" />
+    <ClCompile Include="FileRequestCommand.cpp" />
     <ClCompile Include="FileUtils.cpp" />
     <ClCompile Include="LoginCommand.cpp" />
     <ClCompile Include="MessageCommand.cpp" />

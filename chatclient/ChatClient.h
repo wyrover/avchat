@@ -8,12 +8,16 @@
 
 class ChatOverlappedData;
 class MessageCommand;
+class FileRequestCommand;
 class ChatCommand;
 
 class IChatClientController {
 public:
-	virtual void onNewMessage(const std::wstring& sender, const std::wstring& recver, int64_t timestamp, const std::wstring& message) = 0;
+	virtual void onNewMessage(const std::wstring& sender, const std::wstring& recver,
+		int64_t timestamp, const std::wstring& message) = 0;
 	virtual void onNewUserList() = 0;
+	virtual void onFileRequest(const std::wstring& sender, int64_t timestamp, bool isFolder,
+		const std::wstring& filename, int64_t fileSize) = 0;
 };
 
 class ChatClient
@@ -23,6 +27,7 @@ public:
 	~ChatClient();
 	bool login(const std::wstring& username, const std::wstring& password);
 	void sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
+	void confirmFileRequet(const std::wstring& remote, time_t timestamp);
 	void sendFile(const std::wstring& username, const std::wstring& filePath);
 	void setController(IChatClientController* controller);
 	std::vector<std::wstring> getUserList();
@@ -39,12 +44,13 @@ private:
 		int& neededSize, std::vector<ChatCommand*>& cmdVec);
 	ChatCommand* getCommand(char* recvBuf, int bytes, buffer& cmdBuf);
 	void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
+	void queueRecvCmdRequest(ChatOverlappedData* ol);
+	void send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol);
 
 	void onCmdLoginAck(int ret, ChatOverlappedData* ol);
 	void onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol);
 	void onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol);
-	void queueRecvCmdRequest(ChatOverlappedData* ol);
-	void send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol);
+	void onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol);
 
 private:
 	bool loggedIn_;
@@ -60,5 +66,5 @@ private:
 	std::recursive_mutex userMutex_;
 	HANDLE hRun_;
 	bool valid_;
-	ChatOverlappedData* ol;
+	ChatOverlappedData* sendOl_; // FIXME: to add serial number
 };
