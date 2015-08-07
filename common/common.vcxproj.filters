@@ -60,6 +60,9 @@
     <ClInclude Include="FileRequestAckCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="errcode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

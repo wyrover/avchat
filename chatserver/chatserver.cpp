@@ -4,6 +4,9 @@
 #include "stdafx.h"
 #include "ChatServer.h"
 #include "Utils.h"
+#include "user.h"
+#include "ServerContext.h"
+#include "../common/errcode.h"
 #include "../common/ChatOverlappedData.h"
 #include "../common/FileRequestCommand.h"
 #include "../common/NetConstants.h"
@@ -32,24 +35,46 @@ ChatServer::~ChatServer()
 	WSACleanup();
 }
 
-void ChatServer::init()
+int ChatServer::init()
+{
+	auto hr = initWinsock();
+	if (hr != H_OK)
+		return hr;
+
+	hr = ServerContext::getInstance()->init();
+	if (hr != H_OK)
+		return hr;
+
+	hr = initListen();
+	return hr;
+}
+
+int ChatServer::initWinsock()
 {
 	WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
 	wVersionRequested = MAKEWORD(2, 2);
 	err = WSAStartup(wVersionRequested, &wsaData);
-	assert(err == 0);
+	if (err != 0)
+		return H_SERVER_NETWORK_ERROR;
 
+	return H_OK;
+}
+
+int ChatServer::initListen()
+{
 	listenSock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	assert(listenSock_ != INVALID_SOCKET);
-
+	if (listenSock_ == INVALID_SOCKET)
+		return H_SERVER_NETWORK_ERROR;
 	hComp_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-	assert(hComp_ != NULL);
+	if (hComp_ == NULL)
+		return H_SERVER_ERROR;
 
 	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)listenSock_, hComp_, kCompKey, 0);
-	assert(hComp2 == hComp_);
-
+	if (hComp2 != hComp_)
+		return H_SERVER_ERROR;
+	
 	sockaddr_in addr = { 0 };
 	addr.sin_port = htons(kPort);
 	addr.sin_family = AF_INET;
@@ -58,20 +83,28 @@ void ChatServer::init()
 	addr.sin_addr = in_addr;
 
 	int ret = bind(listenSock_, (const sockaddr*)&addr, sizeof(sockaddr_in));
-	assert(ret == 0);
+	if (ret != 0) {
+		return H_SERVER_NETWORK_ERROR;
+	}
 
 	ret = listen(listenSock_, SOMAXCONN);
-	assert(ret == 0);
+	if (ret != 0) {
+		return H_SERVER_NETWORK_ERROR;
+	}
 
 	GUID guidAcceptEx = WSAID_ACCEPTEX;
 	GUID guidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
 	DWORD bytes;
 	ret = WSAIoctl(listenSock_, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx,
 		sizeof(GUID), &lpfnAcceptEx, sizeof(void*), &bytes, NULL, NULL);
-	assert(ret == 0 && lpfnAcceptEx);
+	if (!(ret == 0 && lpfnAcceptEx)) {
+		return H_SERVER_NETWORK_ERROR;
+	}
 	ret = WSAIoctl(listenSock_, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidGetAcceptExSockaddrs,
 		sizeof(GUID), &lpfnGetAcceptExSockaddrs, sizeof(void*), &bytes, NULL, NULL);
-	assert(ret == 0 && lpfnGetAcceptExSockaddrs);
+	if (!(ret == 0 && lpfnGetAcceptExSockaddrs)) {
+		return H_SERVER_NETWORK_ERROR;
+	}
 
 	int threadCount = Utils::GetCpuCount() * 2;
 	std::vector<std::thread> threads;
@@ -81,6 +114,7 @@ void ChatServer::init()
 	for (auto& thread : threads){
 		thread.join();
 	}
+	return H_OK;
 }
 
 void ChatServer::run()
@@ -236,20 +270,34 @@ void ChatServer::onCmdLogin(LoginCommand* loginCmd, ChatOverlappedData* ol)
 	std::wstring username = loginCmd->getUsername();
 	std::wstring password = loginCmd->getPassword();
 
-	ClientState cs;
-	cs.username = username;
-	cs.recvOl = ol;
-	cs.sendOl = nullptr;
-	addSocketMap(username, cs);
+	User user;
+	if (user.login(username, password) == H_OK) {
+		ClientState cs;
+		cs.username = username;
+		cs.recvOl = ol;
+		cs.sendOl = nullptr;
+		addSocketMap(username, cs);
 
-	SockStream stream;
-	stream.writeInt(net::kCommandType_LoginAck);
-	stream.writeInt(0);
-	stream.writeInt(1);
-	auto pSize = stream.getBuf() + 4;
-	*pSize = stream.getSize();
-	send(&cs, stream.getBuf(), stream.getSize());
-	updateUserlist();
+		SockStream stream;
+		stream.writeInt(net::kCommandType_LoginAck);
+		stream.writeInt(0);
+		stream.writeInt(1);
+		auto pSize = stream.getBuf() + 4;
+		*pSize = stream.getSize();
+		send(&cs, stream.getBuf(), stream.getSize());
+		updateUserlist();
+	} else {
+		SockStream stream;
+		stream.writeInt(net::kCommandType_LoginAck);
+		stream.writeInt(0);
+		stream.writeInt(1);
+		auto pSize = stream.getBuf() + 4;
+		*pSize = stream.getSize();
+		WSABUF wsaBuf;
+		wsaBuf.buf = stream.getBuf();
+		wsaBuf.len = stream.getSize();
+		int ret = WSASend(ol->getSocket(), &wsaBuf, 1, NULL, 0, ol, NULL);
+	}
 }
 
 void ChatServer::queueRecvCmdRequest(ChatOverlappedData* ol)
@@ -403,3 +451,4 @@ bool ChatServer::chatDataToClientState(ChatOverlappedData* ol, ClientState* cs)
 {
 	return false;
 }
+

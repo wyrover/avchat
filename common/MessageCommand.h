@@ -14,6 +14,7 @@ public:
 	int64_t getTimeStamp() const;
 	static MessageCommand* Parse(SockStream* stream);
 	virtual void writeTo(SockStream* stream);
+
 private:
 	std::wstring sender_;
 	std::wstring recver_;

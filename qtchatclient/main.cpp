@@ -4,7 +4,7 @@
 #include <QtWidgets/QApplication>
 #include <assert.h>
 #include <memory.>
-Q_DECLARE_METATYPE(int64_t)
+
 int main(int argc, char *argv[])
 {
 	QApplication a(argc, argv);

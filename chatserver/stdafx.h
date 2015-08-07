@@ -17,6 +17,8 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <codecvt>
+#include <locale>
 
 // TODO: reference additional headers your program requires here
 #include <stdio.h>
@@ -27,5 +29,11 @@
 #include <Ws2spi.h>
 #include <ws2tcpip.h>
 #include <MSWSock.h>
+
+#include <mysql_connection.h>
+#include <mysql_driver.h>
+#include <mysql_error.h>
+#include <cppconn/prepared_statement.h>
+#include <boost/algorithm/string.hpp>
 
 #include "../common/buffer.h"

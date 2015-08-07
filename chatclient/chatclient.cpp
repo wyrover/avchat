@@ -221,6 +221,7 @@ ChatCommand* ChatClient::getCommand(char* recvBuf, int bytes, buffer& cmdBuf)
 		}
 		case net::kCommandType_FileRequestAck:
 		{
+			break;
 		}
 		default: {
 			assert(false);
@@ -351,4 +352,3 @@ std::wstring ChatClient::getUsername()
 {
 	return userName_;
 }
-

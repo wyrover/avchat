@@ -18,11 +18,13 @@ class ChatServer
 public:
 	ChatServer();
 	~ChatServer();
-	void init();
+	int init();
 	void run();
 	bool quit();
 
 private:
+	int initWinsock();
+	int initListen();
 	bool queueCompletionStatus();
 	void onAccept(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
 	void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);

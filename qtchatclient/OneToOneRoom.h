@@ -18,7 +18,6 @@ private:
 	Ui::UiOneToOneRoom ui;
 	std::wstring remote_;
 	ChatClient* client_;
-	BubbleTextObject* fa_;
 	void onOk();
 	void onClose();
 };

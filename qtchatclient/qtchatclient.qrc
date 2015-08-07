@@ -1,4 +1,7 @@
 <RCC>
-    <qresource prefix="qtchatclient">
+    <qresource>
+      <file>Resources/left.png</file>
+      <file>Resources/right.png</file>
+      <file>Resources/keke.gif</file>
     </qresource>
 </RCC>
