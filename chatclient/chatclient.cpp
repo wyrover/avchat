@@ -11,10 +11,11 @@
 #include "../common/UserListCommand.h"
 #include "../common/LoginCommand.h"
 #include "../common/FileUtils.h"
+#include "../common/FileExistsCommand.h"
+#include "../common/FileExistsAckCommand.h"
 #include "LoginAckCommand.h"
 #include "ChatClient.h"
-#include <process.h>
-#include "Shlwapi.h"
+#include "ChatClientUtils.h"
 
 #define LOG 1
 
@@ -70,12 +71,47 @@ bool ChatClient::login(const std::wstring& username, const std::wstring& passwor
 
 void ChatClient::sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp)
 {
-	MessageCommand command;
-	command.set(userName_, username, message, timestamp);
-	SockStream ss;
-	command.writeTo(&ss);
-	send(sock_, ss.getBuf(), ss.getSize(), nullptr);
+	if (message.find(L"<img") == -1) {
+		MessageCommand command;
+		command.set(userName_, username, message, timestamp);
+		SockStream ss;
+		command.writeTo(&ss);
+		send(sock_, ss.getBuf(), ss.getSize());
+	} else {
+		ChatOverlappedData* ol = new ChatOverlappedData(net::kNetType_Send);
+		ol->setCommandType(net::kCommandType_ImageMessage);
+		ol->setMessage(message);
+		PostQueuedCompletionStatus(hComp_, 0, kCompKey, ol);
+	}
 }
+
+void ChatClient::sendImageMessage(ChatOverlappedData* ol)
+{
+	auto msg = ol->getMessage();
+	std::vector<std::wstring> fileList;
+	ChatClientUtils::XmlToImageList(msg, &fileList);
+	std::vector<std::wstring> hashList;
+	for (auto filePath : fileList) {
+		std::wstring hash;
+		ChatClientUtils::CalculateFileSHA1(filePath, &hash);
+		hashList.push_back(hash);
+	}
+
+	auto fileOl = new ChatOverlappedData(net::kNetType_Send);
+	fileOl->setCommandType(net::kCommandType_FileExists);
+	FileExistsCommand cmd;
+	cmd.setHashList(hashList, (int)ol);
+	SockStream ss;
+	cmd.writeTo(&ss);
+	send(sock_, ss.getBuf(), ss.getSize());
+}
+
+void ChatClient::sendImageMessage2(ChatOverlappedData* ol)
+{
+
+}
+
+
 
 std::vector<std::wstring> ChatClient::getUserList()
 {
@@ -116,7 +152,9 @@ bool ChatClient::queueCompletionStatus()
 	if (type == net::kNetType_Recv) {
 		onRecv(ol, bytes, key);
 	} else if (type == net::kNetType_Send) {
-
+		if (ol->getCommandType() == net::kCommandType_ImageMessage) {
+			sendImageMessage(ol);
+		}
 	}
 	return true;
 }
@@ -125,27 +163,32 @@ void ChatClient::dispatchCommand(ChatOverlappedData* ol, ChatCommand* cmd)
 {
 	int type = cmd->getType();
 	switch (type) {
-		case net::kCommandType_LoginAck:
-		{
-			onCmdLoginAck(dynamic_cast<LoginAckCommand*>(cmd)->getResult(), ol);
-			break;
-		}
-		case net::kCommandType_Message:
-		{
-			onCmdMessage(dynamic_cast<MessageCommand*>(cmd), ol);
-			break;
-		}
-		case net::kCommandType_UserList:
-		{
-			onCmdUserList(dynamic_cast<UserListCommand*>(cmd)->getUserList(), ol);
-			break;
-		}
-		case net::kCommandType_FileRequestAck:
-		{
-			break;
-		}
-		default:
-			break;
+	case net::kCommandType_FileExistsAck:
+	{
+		onCmdFileExistsAck(dynamic_cast<FileExistsAckCommand*>(cmd));
+		break;
+	}
+	case net::kCommandType_LoginAck:
+	{
+		onCmdLoginAck(dynamic_cast<LoginAckCommand*>(cmd)->getResult(), ol);
+		break;
+	}
+	case net::kCommandType_Message:
+	{
+		onCmdMessage(dynamic_cast<MessageCommand*>(cmd), ol);
+		break;
+	}
+	case net::kCommandType_UserList:
+	{
+		onCmdUserList(dynamic_cast<UserListCommand*>(cmd)->getUserList(), ol);
+		break;
+	}
+	case net::kCommandType_FileRequestAck:
+	{
+		break;
+	}
+	default:
+		break;
 	}
 }
 
@@ -204,29 +247,34 @@ ChatCommand* ChatClient::getCommand(char* recvBuf, int bytes, buffer& cmdBuf)
 	SockStream stream(buf, len);
 	int type = stream.getInt();
 	switch (type) {
-		case net::kCommandType_Login:
-		{
-			auto cmd = LoginAckCommand::Parse(&stream);
-			return cmd;
-		}
-		case net::kCommandType_Message:
-		{
-			auto cmd = MessageCommand::Parse(&stream);
-			return cmd;
-		}
-		case net::kCommandType_UserList:
-		{
-			auto cmd = UserListCommand::Parse(&stream);
-			return cmd;
-		}
-		case net::kCommandType_FileRequestAck:
-		{
-			break;
-		}
-		default: {
-			assert(false);
-			break;
-		}
+	case net::kCommandType_Login:
+	{
+		auto cmd = LoginAckCommand::Parse(&stream);
+		return cmd;
+	}
+	case net::kCommandType_Message:
+	{
+		auto cmd = MessageCommand::Parse(&stream);
+		return cmd;
+	}
+	case net::kCommandType_UserList:
+	{
+		auto cmd = UserListCommand::Parse(&stream);
+		return cmd;
+	}
+	case net::kCommandType_FileExistsAck:
+	{
+		auto cmd = FileExistsAckCommand::Parse(&stream);
+		return cmd;
+	}
+	case net::kCommandType_FileRequestAck:
+	{
+		break;
+	}
+	default: {
+		assert(false);
+		break;
+	}
 	}
 	return nullptr;
 }
@@ -242,7 +290,7 @@ void ChatClient::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 	auto recver = messageCmd->getReceiver();
 	auto timestamp = messageCmd->getTimeStamp();
 	auto msg = messageCmd->getMessage();
-	TRACE(L"new message from %s: %s\n", sender.c_str(), msg.c_str());
+	//TRACE(L"new message from %s: %s\n", sender.c_str(), msg.c_str());
 	if (controller_) {
 		controller_->onNewMessage(sender, recver, timestamp, msg);
 	}
@@ -251,6 +299,14 @@ void ChatClient::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol
 void ChatClient::onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol)
 {
 
+}
+
+void ChatClient::onCmdFileExistsAck(FileExistsAckCommand* cmd)
+{
+	auto msgOl = reinterpret_cast<ChatOverlappedData*>(cmd->getId());
+	auto msgXml = msgOl->getMessage();
+	auto urlList = cmd->getUrlList();
+	//auto finalMessage = 
 }
 
 void ChatClient::onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol)
@@ -294,12 +350,10 @@ void ChatClient::queueRecvCmdRequest(ChatOverlappedData* ol)
 	}
 }
 
-void ChatClient::send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol)
+void ChatClient::send(SOCKET socket, char* buff, int len)
 {
-	if (!ol) {
-		ol = new ChatOverlappedData(net::kNetType_Send);
-		ol->setSocket(sock_);
-	}
+	auto ol = new ChatOverlappedData(net::kNetType_Send);
+	ol->setSocket(sock_);
 	WSABUF wsaBuf;
 	wsaBuf.buf = buff;
 	wsaBuf.len = len;
@@ -316,6 +370,7 @@ static unsigned int __stdcall keke(void* obj) {
 	return 1;
 }
 
+//FIXME: add multiple threads such as chatserver.
 void ChatClient::startThread()
 {
 	hThread_ = (HANDLE)_beginthreadex(0, 0, keke, this, 0, &threadId_);
@@ -340,7 +395,7 @@ void ChatClient::sendFile(const std::wstring& username, const std::wstring& file
 	cmd.init(userName_, userName_, filePath, FileUtils::DirExists(filePath.c_str()), fileSize, timestamp);
 	SockStream ss;
 	cmd.writeTo(&ss);
-	send(sock_, ss.getBuf(), ss.getSize(), nullptr);
+	send(sock_, ss.getBuf(), ss.getSize());
 }
 
 void ChatClient::confirmFileRequet(const std::wstring& remote, time_t timestamp)
@@ -352,3 +407,4 @@ std::wstring ChatClient::getUsername()
 {
 	return userName_;
 }
+

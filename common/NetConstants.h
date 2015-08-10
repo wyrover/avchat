@@ -15,5 +15,9 @@ namespace net
 		kCommandType_FileRequest,
 		kCommandType_FileRequestAck,
 		kCommandType_FileTransfer,
+		kCommandType_ImageMessageClient,
+		kCommandType_ImageMessage,
+		kCommandType_FileExists,
+		kCommandType_FileExistsAck,
 	};
 }

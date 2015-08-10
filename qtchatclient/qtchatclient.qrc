@@ -3,5 +3,8 @@
       <file>Resources/left.png</file>
       <file>Resources/right.png</file>
       <file>Resources/keke.gif</file>
+      <file>Resources/scrollbar.qss</file>
+      <file>Resources/image.png</file>
+      <file>Resources/voice.png</file>
     </qresource>
 </RCC>

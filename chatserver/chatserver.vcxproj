@@ -91,6 +91,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChatServer.h" />
+    <ClInclude Include="Client.h" />
+    <ClInclude Include="ClientManager.h" />
+    <ClInclude Include="CommandCenter.h" />
     <ClInclude Include="DBContext.h" />
     <ClInclude Include="ServerContext.h" />
     <ClInclude Include="SimpleTest.h" />
@@ -101,6 +104,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chatserver.cpp" />
+    <ClCompile Include="Client.cpp" />
+    <ClCompile Include="ClientManager.cpp" />
+    <ClCompile Include="CommandCenter.cpp" />
     <ClCompile Include="DBContext.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ServerContext.cpp" />

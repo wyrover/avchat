@@ -35,6 +35,7 @@ private slots:
 	void onUiNewMessage(const QString& sender, const QString& username, qint64 timestamp, const QString& message);
 	void onSendClicked();
 	void onUsernameDoubleClicked(const QModelIndex& index);
+	void onAddPicClicked();
 
 signals:
 	void uiNewMessage(const QString& sender, const QString& recver, qint64 timestamp, const QString& message);

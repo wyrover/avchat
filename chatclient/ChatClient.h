@@ -9,6 +9,7 @@
 class ChatOverlappedData;
 class MessageCommand;
 class FileRequestCommand;
+class FileExistsAckCommand;
 class ChatCommand;
 
 class IChatClientController {
@@ -45,9 +46,13 @@ private:
 	ChatCommand* getCommand(char* recvBuf, int bytes, buffer& cmdBuf);
 	void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
 	void queueRecvCmdRequest(ChatOverlappedData* ol);
-	void send(SOCKET socket, char* buff, int len, ChatOverlappedData* ol);
+
+	void send(SOCKET socket, char* buff, int len);
+	void sendImageMessage(ChatOverlappedData* ol);
+	void sendImageMessage2(ChatOverlappedData* ol);
 
 	void onCmdLoginAck(int ret, ChatOverlappedData* ol);
+	void onCmdFileExistsAck(FileExistsAckCommand* cmd);
 	void onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol);
 	void onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol);
 	void onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol);

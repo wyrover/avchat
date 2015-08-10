@@ -152,3 +152,27 @@ char* SockStream::getCurrPtr()
 		return buff_ + size_;
 }
 
+int SockStream::writeStringVec(const std::vector<std::wstring>& strVec)
+{
+	int bytes = writeInt(strVec.size());
+	for (auto str : strVec) {
+		bytes += writeString(str);
+	}
+	return bytes;
+}
+
+std::vector<std::wstring> SockStream::getStringVec()
+{
+	std::vector<std::wstring> result;
+	int count = getInt();
+	while (count--) {
+		result.push_back(getString());
+	}
+	return result;
+}
+
+void SockStream::flushSize()
+{
+	auto pSize = (int*)(getBuf() + 4);
+	*pSize = getSize();
+}

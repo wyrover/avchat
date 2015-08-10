@@ -1,8 +1,13 @@
 #include "qtchatclient.h"
 #include <QStringList>
 #include <ATLComTime.h>
+#include <QTextStream>
+#include <QScrollBar>
+#include <QFileDialog>
+#include <QDebug>
 #include "OneToOneRoom.h"
 #include "BubbleTextObject.h"
+#include "QtClientUtils.h"
 
 qtchatclient::qtchatclient(ChatClient* client, QWidget *parent)
 	: QMainWindow(parent), client_(client)
@@ -13,10 +18,24 @@ qtchatclient::qtchatclient(ChatClient* client, QWidget *parent)
 	connect(pushButton, SIGNAL(clicked()), this, SLOT(onSendClicked()));
 	userListView->setModel(&userListModel_);
 	userListView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+	userListView->setFrameStyle(QFrame::NoFrame);
+	textBrowser->setFrameStyle(QFrame::NoFrame);
+	textEdit->setFrameStyle(QFrame::NoFrame);
 	connect(userListView, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(onUsernameDoubleClicked(const QModelIndex&)));
 	client_->setController(this);
 	client_->startThread();
 	setWindowTitle(QString("%1@public chat room").arg(QString::fromStdWString(client_->getUsername())));
+	QFile file(":/Resources/scrollbar.qss");
+	file.open(QFile::ReadOnly | QFile::Text);
+	QTextStream in(&file);
+	QString content = in.readAll();
+	textBrowser->verticalScrollBar()->setStyleSheet(content);
+	textEdit->verticalScrollBar()->setStyleSheet(content);
+	userListView->verticalScrollBar()->setStyleSheet(content);
+	textEdit->setFocus();
+	addPicBtn->setIcon(QIcon(":/Resources/image.png"));
+	addVoiceBtn->setIcon(QIcon(":/Resources/voice.png"));
+	connect(addPicBtn, SIGNAL(clicked()), this, SLOT(onAddPicClicked()));
 }
 
 qtchatclient::~qtchatclient()
@@ -51,7 +70,10 @@ void qtchatclient::onUiNewMessage(const QString& sender, const QString& recver, 
 
 void qtchatclient::onSendClicked()
 {	
-	client_->sendMessage(L"all", textEdit->toPlainText().toStdWString(), time(NULL));
+	auto html = textEdit->toHtml();
+	auto text = textEdit->toPlainText().toStdWString();
+	auto message = QtClientUtils::textEditToMessageText(textEdit);
+	client_->sendMessage(L"all", message, time(NULL));
 	textEdit->clear();
 }
 
@@ -74,10 +96,33 @@ OneToOneRoom* qtchatclient::getRoom(const std::wstring& username)
 __override void qtchatclient::onFileRequest(const std::wstring& sender, int64_t timestamp, bool isFolder,
 	const std::wstring& filename, int64_t fileSize)
 {
-
 }
 
 void qtchatclient::addMessage(const QString& username, time_t timestamp, const QString& message)
 {
 	textBrowser->addMessage(username, username.toStdWString() == client_->getUsername(), timestamp, message);
+}
+
+void qtchatclient::onAddPicClicked()
+{
+	auto fileName = QFileDialog::getOpenFileName(this,
+		tr("Open Image File"), "", tr("Image Files (*.jpg;*.png;*.gif;*.jpeg)"));
+	if (!fileName.isNull()) {
+		QTextCursor c(textEdit->document());
+		c.movePosition(QTextCursor::End);
+
+		QImage image;
+		image.load(fileName);
+		QTextImageFormat imageFormat;
+		float maxImageWidth = textEdit->width() / 2.f;
+		if (image.width() < maxImageWidth) {
+			imageFormat.setWidth(image.width());
+			imageFormat.setHeight(image.height());
+		} else {
+			imageFormat.setWidth(maxImageWidth);
+			imageFormat.setHeight(maxImageWidth / image.width() * image.height());
+		}
+		imageFormat.setName(fileName);
+		c.insertImage(imageFormat);
+	}
 }

@@ -6,6 +6,7 @@
 #include "Utils.h"
 #include "user.h"
 #include "ServerContext.h"
+#include "client.h"
 #include "../common/errcode.h"
 #include "../common/ChatOverlappedData.h"
 #include "../common/FileRequestCommand.h"
@@ -35,7 +36,7 @@ ChatServer::~ChatServer()
 	WSACleanup();
 }
 
-int ChatServer::init()
+HERRCODE ChatServer::init()
 {
 	auto hr = initWinsock();
 	if (hr != H_OK)
@@ -49,7 +50,7 @@ int ChatServer::init()
 	return hr;
 }
 
-int ChatServer::initWinsock()
+HERRCODE ChatServer::initWinsock()
 {
 	WORD wVersionRequested;
 	WSADATA wsaData;
@@ -191,73 +192,7 @@ void ChatServer::onAccept(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 
 void ChatServer::onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 {
-	std::vector<ChatCommand*> cmds;
-	int bufSize = bytes;
-	parseCommand(ol, ol->getBuf().data(), bufSize, ol->getCmdNeedSize(), cmds);
-	for (auto cmd : cmds) {
-		dispatchCommand(ol, cmd);
-	}
-	for (auto cmd : cmds) {
-		delete cmd;
-	}
-}
-
-void ChatServer::addSocketMap(const std::wstring& username, const ClientState& cs)
-{
-	std::lock_guard<std::recursive_mutex> g(mapMutex_);
-	connMap_[username] = cs;
-}
-
-bool ChatServer::getClientByUsername(const std::wstring& username, ClientState* cs)
-{
-	std::lock_guard<std::recursive_mutex> g(mapMutex_);
-	if (!connMap_.count(username))
-		return false;
-	*cs = connMap_.at(username);
-	return true;
-}
-
-void ChatServer::removeClientByUsername(const std::wstring& username)
-{
-	std::lock_guard<std::recursive_mutex> g(mapMutex_);
-	connMap_.erase(username);
-}
-
-void ChatServer::updateUserlist()
-{
-	SockStream stream;
-	stream.writeInt(net::kCommandType_UserList);
-	stream.writeInt(0);
-	std::lock_guard<std::recursive_mutex> g(mapMutex_);
-	stream.writeInt(connMap_.size());
-	for (auto& item : connMap_) {
-		stream.writeString(item.second.username);
-	}
-	auto pSize = stream.getBuf() + 4;
-	*pSize = stream.getSize();
-	for (auto& item : connMap_) {
-		auto cs = item.second;
-		send(&cs, stream.getBuf(), stream.getSize());
-	}
-}
-
-void ChatServer::send(ClientState* cs, char* buff, int len)
-{
-	assert(cs->recvOl);
-	if (!cs->sendOl) {
-		cs->sendOl = new ChatOverlappedData(net::kNetType_Send);
-		cs->sendOl->setSocket(cs->recvOl->getSocket());
-	}
-	WSABUF wsaBuf;
-	wsaBuf.buf = buff;
-	wsaBuf.len = len;
-	assert(cs->sendOl && cs->sendOl->getNetType() == net::kNetType_Send);
-	int ret = WSASend(cs->sendOl->getSocket(), &wsaBuf, 1, NULL, 0, cs->sendOl, NULL);
-	int errcode = WSAGetLastError();
-	if (ret != 0) {
-		TRACE_IF(LOG_IOCP, "wsasend error %d\n", errcode);
-		assert(errcode == WSA_IO_PENDING);
-	}
+	cmdCenter_.fill(ol->getSocket(), ol->getBuf().data(), bytes);
 }
 
 bool ChatServer::quit()
@@ -265,190 +200,3 @@ bool ChatServer::quit()
 	quit_ = true;
 	return true;
 }
-void ChatServer::onCmdLogin(LoginCommand* loginCmd, ChatOverlappedData* ol)
-{
-	std::wstring username = loginCmd->getUsername();
-	std::wstring password = loginCmd->getPassword();
-
-	User user;
-	if (user.login(username, password) == H_OK) {
-		ClientState cs;
-		cs.username = username;
-		cs.recvOl = ol;
-		cs.sendOl = nullptr;
-		addSocketMap(username, cs);
-
-		SockStream stream;
-		stream.writeInt(net::kCommandType_LoginAck);
-		stream.writeInt(0);
-		stream.writeInt(1);
-		auto pSize = stream.getBuf() + 4;
-		*pSize = stream.getSize();
-		send(&cs, stream.getBuf(), stream.getSize());
-		updateUserlist();
-	} else {
-		SockStream stream;
-		stream.writeInt(net::kCommandType_LoginAck);
-		stream.writeInt(0);
-		stream.writeInt(1);
-		auto pSize = stream.getBuf() + 4;
-		*pSize = stream.getSize();
-		WSABUF wsaBuf;
-		wsaBuf.buf = stream.getBuf();
-		wsaBuf.len = stream.getSize();
-		int ret = WSASend(ol->getSocket(), &wsaBuf, 1, NULL, 0, ol, NULL);
-	}
-}
-
-void ChatServer::queueRecvCmdRequest(ChatOverlappedData* ol)
-{
-	buffer& buf = ol->getBuf();
-	WSABUF* wsaBuf = new WSABUF[1];
-	wsaBuf[0].buf = buf.data();
-	wsaBuf[0].len = buf.size();
-	DWORD flags = 0;
-	ol->setNetType(net::kNetType_Recv);
-	TRACE("queue an recv request for ol %x\n", ol);
-	int err = WSARecv(ol->getSocket(), wsaBuf, 1, NULL, &flags, ol, NULL);
-	int errcode = WSAGetLastError();
-	if (err != 0) {
-		TRACE_IF(LOG_IOCP, "wsarecv error %d\n", errcode);
-		assert(errcode == WSA_IO_PENDING);
-	}
-}
-
-void ChatServer::dispatchCommand(ChatOverlappedData* ol, ChatCommand* cmd)
-{
-	int type = cmd->getType();
-	switch (type) {
-		case net::kCommandType_Login:
-		{
-			onCmdLogin(dynamic_cast<LoginCommand*>(cmd), ol);
-			break;
-		}
-		case net::kCommandType_Message:
-		{
-			onCmdMessage(dynamic_cast<MessageCommand*>(cmd), ol);
-			break;
-		}
-		default:
-			break;
-	}
-}
-
-void ChatServer::parseCommand(ChatOverlappedData* ol, char* recvBuf, int& bytes, int& neededSize,
-	std::vector<ChatCommand*>& cmdVec)
-{
-	if (bytes == 0)
-		return;
-
-	buffer& cmdBuf = ol->getCmdBuf();
-	int cmdSize = 0;
-	if (neededSize == -1)  {
-		if (cmdBuf.size() + bytes < 8) {
-			cmdBuf.append(recvBuf, bytes);
-			queueRecvCmdRequest(ol);
-			return;
-		} else {
-			SockStream stream(ol->getBuf().data(), bytes);
-			stream.getInt(); // type
-			cmdSize = stream.getInt();
-		}
-	} else {
-		cmdSize = neededSize;
-	}
-
-	if (bytes >= cmdSize) {
-		ChatCommand* cmd = getCommand(recvBuf, bytes, cmdBuf);
-		cmdVec.push_back(cmd);
-		neededSize = -1;
-		recvBuf += cmdSize;
-		bytes -= cmdSize;
-		cmdBuf.clear();
-		if (bytes != 0)
-			parseCommand(ol, recvBuf, bytes, neededSize, cmdVec);
-		else
-			queueRecvCmdRequest(ol);
-	} else {
-		cmdBuf.append(recvBuf, bytes);
-		neededSize = cmdSize - bytes;
-		queueRecvCmdRequest(ol);
-	}
-}
-
-ChatCommand* ChatServer::getCommand(char* recvBuf, int bytes, buffer& cmdBuf)
-{
-	char* buf = nullptr;
-	int len = 0;
-	if (cmdBuf.empty()) {
-		buf = recvBuf;
-		len = bytes;
-	} else {
-		cmdBuf.append(recvBuf, bytes);
-		buf = cmdBuf.data();
-		len = cmdBuf.size();
-	}
-	SockStream stream(buf, len);
-	int type = stream.getInt();
-	switch (type) {
-		case net::kCommandType_Login:
-		{
-			auto cmd = LoginCommand::Parse(&stream);
-			return cmd;
-		}
-		case net::kCommandType_Message:
-		{
-			auto cmd = MessageCommand::Parse(&stream);
-			return cmd;
-		}
-		default:
-			break;
-	}
-	return nullptr;
-}
-
-void ChatServer::onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol)
-{
-	auto sender = messageCmd->getSender();
-	auto recver = messageCmd->getReceiver();
-	auto msg = messageCmd->getMessage();
-	SockStream stream;
-	stream.writeInt(net::kCommandType_Message);
-	stream.writeInt(0);
-	stream.writeString(sender);
-	stream.writeString(recver);
-	stream.writeInt64(time(NULL));
-	stream.writeString(msg);
-	auto pSize = stream.getBuf() + 4;
-	*pSize = stream.getSize();
-	TRACE(L"%s send %s to %s\n", sender.c_str(), recver.c_str(), msg.c_str());
-	if (recver == L"all") {
-		std::lock_guard<std::recursive_mutex> g(mapMutex_);
-		for (auto& item : connMap_) {
-			auto cs = item.second;
-			send(&cs, stream.getBuf(), stream.getSize());
-		}
-	} else {
-		ClientState cs;
-		if (getClientByUsername(recver, &cs)) {
-			send(&cs, stream.getBuf(), stream.getSize());
-		}
-	}
-}
-
-void ChatServer::onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol)
-{
-	auto recver = cmd->getRecver();
-	SockStream ss;
-	cmd->writeTo(&ss);
-	ClientState cs;
-	if (getClientByUsername(recver, &cs)) {
-		send(&cs, ss.getBuf(), ss.getSize());
-	}
-}
-
-bool ChatServer::chatDataToClientState(ChatOverlappedData* ol, ClientState* cs)
-{
-	return false;
-}
-

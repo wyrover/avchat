@@ -58,6 +58,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Lib>
+      <AdditionalDependencies>XmlLite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -81,6 +84,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChatClient.h" />
+    <ClInclude Include="ChatClientUtils.h" />
     <ClInclude Include="FileManager.h" />
     <ClInclude Include="LoginAckCommand.h" />
     <ClInclude Include="stdafx.h" />
@@ -88,6 +92,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chatclient.cpp" />
+    <ClCompile Include="ChatClientUtils.cpp" />
     <ClCompile Include="client.cpp" />
     <ClCompile Include="FileManager.cpp" />
     <ClCompile Include="LoginAckCommand.cpp" />

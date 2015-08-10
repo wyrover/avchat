@@ -7,6 +7,8 @@ LoginDialog::LoginDialog(ChatClient* client)
 	lineEdit->setFocus();
 	client_ = client;
 	connect(buttonBox, SIGNAL(accepted()), this, SLOT(onOk()));
+	lineEdit->setText("jcyangzh@gmail.com");
+	lineEdit_2->setText("123456");
 }
 
 LoginDialog::~LoginDialog()

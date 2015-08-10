@@ -19,11 +19,12 @@ void Trace(const char* fileName, const int line, const char* funName, const char
 #define TRACE(format, ...) \
 	do { \
 		Trace(__SHORT_FILE__, __LINE__, __FUNCTION__, format, __VA_ARGS__); \
-				} while(0);
+					} while(0);
 
 #define TRACE_IF(cond, format, ...) \
+	{ \
 	do { \
 		if (cond) {\
 			Trace(__SHORT_FILE__, __LINE__, __FUNCTION__, format, __VA_ARGS__); \
 								} \
-				} while(0);
+				} while(0);}

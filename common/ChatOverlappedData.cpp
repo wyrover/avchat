@@ -57,3 +57,13 @@ void ChatOverlappedData::setCommandType(int type)
 {
 	commandType_ = type;
 }
+
+void ChatOverlappedData::setMessage(const std::wstring& message)
+{
+	message_ = message;
+}
+
+std::wstring ChatOverlappedData::getMessage()
+{
+	return message_;
+}

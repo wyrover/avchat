@@ -63,6 +63,12 @@
     <ClInclude Include="errcode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FileExistsCommand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileExistsAckCommand.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -96,6 +102,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FileRequestAckCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FileExistsCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FileExistsAckCommand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

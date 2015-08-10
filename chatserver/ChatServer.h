@@ -1,58 +1,37 @@
 #pragma once
 
+#include "ClientManager.h"
+#include "CommandCenter.h"
 class ChatOverlappedData;
 class ChatCommand;
 class MessageCommand;
 class LoginCommand;
 class FileRequestCommand;
 
-struct ClientState
-{
-	ChatOverlappedData* recvOl;
-	ChatOverlappedData* sendOl;
-	std::wstring username;
-};
-
 class ChatServer
 {
 public:
 	ChatServer();
 	~ChatServer();
-	int init();
+	HERRCODE init();
 	void run();
 	bool quit();
 
 private:
-	int initWinsock();
-	int initListen();
+	HERRCODE initWinsock();
+	HERRCODE initListen();
+
 	bool queueCompletionStatus();
 	void onAccept(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
 	void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
-	void dispatchCommand(ChatOverlappedData* ol, ChatCommand* cmd);
-	void parseCommand(ChatOverlappedData* ol, char* recvBuf, int& bytes,
-		int& neededSize, std::vector<ChatCommand*>& cmdVec);
-	ChatCommand* getCommand(char* recvBuf, int bytes, buffer& cmdBuf);
 
-	void onCmdLogin(LoginCommand* loginCmd, ChatOverlappedData* ol);
-	void onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol);
-	void onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol);
-
-	void updateUserlist();
-	void addSocketMap(const std::wstring& username, const ClientState& cs);
-	bool getClientByUsername(const std::wstring& username, ClientState* cs);
-	void removeClientByUsername(const std::wstring& username);
-	void send(ClientState* ol, char* buff, int len);
-	void queueRecvCmdRequest(ChatOverlappedData* ol);
-
-	std::map<std::wstring, ClientState> connMap_;
-	std::recursive_mutex mapMutex_;
+private:
 	SOCKET listenSock_;
 	HANDLE hComp_;
-	bool chatDataToClientState(ChatOverlappedData* ol, ClientState* cs);
-
 	std::atomic<bool> quit_;
 	std::atomic<int>  acceptRequest_;
 	std::atomic<int> acceptedRequest_;
+	CommandCenter cmdCenter_;
 	static LPFN_ACCEPTEX        lpfnAcceptEx;
 	static LPFN_GETACCEPTEXSOCKADDRS lpfnGetAcceptExSockaddrs;
 };

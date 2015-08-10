@@ -122,6 +122,9 @@
     <ClCompile Include="webfile.cpp">
       <Filter>webfile</Filter>
     </ClCompile>
+    <ClCompile Include="QtClientUtils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="qtchatclient.h">
@@ -182,6 +185,12 @@
     </ClInclude>
     <ClInclude Include="debugout.h">
       <Filter>webfile</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientMessage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QtClientUtils.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

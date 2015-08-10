@@ -1,0 +1,89 @@
+/*
+ 垂直滚动条
+*/
+QScrollBar:vertical {
+    background-color: rgb(219,222,233);
+    width: 9px;
+    margin: 0px 0 0px 0;
+}
+QScrollBar:vertical:hover {
+    background-color: rgb(179,181,191);
+    border-radius: 3px;
+}
+QScrollBar::handle:vertical {
+    background: rgb(176, 179, 188);
+    min-height: 20px;
+    margin: 0 1px 0 2px;
+    border-radius: 3px;
+    border: none;
+    /*background: qlineargradient(spread:reflect, 
+        x1:0, y1:0, x2:1, y2:0, 
+        stop:0 rgba(164, 164, 164, 255), 
+        stop:0.5 rgba(120, 120, 120, 255),
+        stop:1 rgba(164, 164, 164, 255));*/
+    /*border-image: url(images/scrollbar-vertical-thumb.png) 8px 0 8px 0 fixed;*/
+}
+
+QScrollBar::handle:vertical:hover {
+    background: rgb(124, 125, 129);
+}
+
+QScrollBar::add-line:vertical {
+    background-color: rgb(207,208,215);
+    height: 0px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:vertical {
+    background-color: rgb(207,208,215);
+    height: 0px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+    border: 1px solid grey;
+    width: 3px;
+    height: 3px;
+    background: white;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+/*
+ 水平滚动条
+*/
+QScrollBar:horizontal {
+    background: url(images/scrollbar-horizontal-bg.png);
+    height: 9px;
+    margin: 0px 0 0px 0;
+}
+QScrollBar::handle:horizontal {
+    background: rgb(195, 195, 195);
+    min-width: 20px;
+    margin: 2px 0px 1px 0px;
+    border-radius: 3px;
+    border: none;
+}
+QScrollBar::add-line:horizontal {
+    border: 0px solid grey;
+    background: #32CC99;
+    width: 0px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:horizontal {
+    border: 0px solid grey;
+    background: #32CC99;
+    width: 0px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}

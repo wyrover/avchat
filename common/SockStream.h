@@ -14,6 +14,8 @@ public:
 	int writeBool(bool value);
 	int write(char* value, size_t len);
 	int write(char ch);
+	int writeStringVec(const std::vector<std::wstring>& strVec);
+	void flushSize();
 
 	int getInt();
 	int64_t getInt64();
@@ -21,6 +23,7 @@ public:
 	double getDouble();
 	float getFloat();
 	bool getBool();
+	std::vector<std::wstring> getStringVec();
 
 	char* getBuf();
 	char* getCurrPtr();

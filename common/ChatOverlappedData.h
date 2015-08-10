@@ -19,6 +19,8 @@ public:
 	void setNetType(int type);
 	int getCommandType() const;
 	void setCommandType(int type);
+	void setMessage(const std::wstring& message);
+	std::wstring getMessage();
 
 private:
 	int netType_;
@@ -27,4 +29,5 @@ private:
 	buffer cmdBuf_;
 	SOCKET sock_;
 	int cmdNeedSize_;
+	std::wstring message_;
 };
