@@ -1,16 +1,14 @@
 #pragma once
 
-#include <windows.h>
-#include <mutex>
+#include <stdint.h>
 #include <string>
+#include <atomic>
 #include <vector>
-#include "../common/buffer.h"
-
+#include <thread>
+#include <Windows.h>
+#include "../common/errcode.h"
+#include "CommandCenter.h"
 class ChatOverlappedData;
-class MessageCommand;
-class FileRequestCommand;
-class FileExistsAckCommand;
-class ChatCommand;
 
 class IChatClientController {
 public:
@@ -24,52 +22,31 @@ public:
 class ChatClient
 {
 public:
-	ChatClient(const std::wstring& serverAddr, int port);
+	ChatClient();
 	~ChatClient();
-	bool login(const std::wstring& username, const std::wstring& password);
-	void sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
-	void confirmFileRequet(const std::wstring& remote, time_t timestamp);
-	void sendFile(const std::wstring& username, const std::wstring& filePath);
-	void setController(IChatClientController* controller);
+	HERRCODE init(const std::wstring& serverAddr, int port);
+	HERRCODE login(const std::wstring& username, const std::wstring& password);
+	HERRCODE sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
 	std::vector<std::wstring> getUserList();
-	void startThread();
-	void quit();
-	bool isValid();
-	void run();
+	void setController(IChatClientController* controller);
 	std::wstring getUsername();
-	
+	void quit(bool wait);
+	void start();
+
 private:
+	HERRCODE initWinsock();
 	bool queueCompletionStatus();
-	void dispatchCommand(ChatOverlappedData* ol, ChatCommand* cmd);
-	void parseCommand(ChatOverlappedData* ol, char* recvBuf, int& bytes,
-		int& neededSize, std::vector<ChatCommand*>& cmdVec);
-	ChatCommand* getCommand(char* recvBuf, int bytes, buffer& cmdBuf);
+	void queueSendRequest(SOCKET socket, SockStream& stream);
 	void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
-	void queueRecvCmdRequest(ChatOverlappedData* ol);
-
-	void send(SOCKET socket, char* buff, int len);
-	void sendImageMessage(ChatOverlappedData* ol);
-	void sendImageMessage2(ChatOverlappedData* ol);
-
-	void onCmdLoginAck(int ret, ChatOverlappedData* ol);
-	void onCmdFileExistsAck(FileExistsAckCommand* cmd);
-	void onCmdMessage(MessageCommand* messageCmd, ChatOverlappedData* ol);
-	void onCmdUserList(const std::vector<std::wstring>& userList, ChatOverlappedData* ol);
-	void onCmdFileRequest(FileRequestCommand* cmd, ChatOverlappedData* ol);
+	void threadFun(bool initRecv);
 
 private:
-	bool loggedIn_;
-	HANDLE hThread_;
-	unsigned int threadId_;
+	HANDLE hComp_;
+	std::vector<std::thread> threads_;
+	std::atomic<bool> quit_;
+	CommandCenter cmdCenter_;
+	std::wstring username_;
 	SOCKET sock_;
 	sockaddr_in serverAddr_;
-	bool quit_;
-	HANDLE hComp_;
 	IChatClientController* controller_;
-	std::vector<std::wstring> userList_;
-	std::wstring userName_;
-	std::recursive_mutex userMutex_;
-	HANDLE hRun_;
-	bool valid_;
-	ChatOverlappedData* sendOl_; // FIXME: to add serial number
 };

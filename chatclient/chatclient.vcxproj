@@ -85,7 +85,9 @@
   <ItemGroup>
     <ClInclude Include="ChatClient.h" />
     <ClInclude Include="ChatClientUtils.h" />
+    <ClInclude Include="CommandCenter.h" />
     <ClInclude Include="FileManager.h" />
+    <ClInclude Include="IChatClientController.h" />
     <ClInclude Include="LoginAckCommand.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -94,6 +96,7 @@
     <ClCompile Include="chatclient.cpp" />
     <ClCompile Include="ChatClientUtils.cpp" />
     <ClCompile Include="client.cpp" />
+    <ClCompile Include="CommandCenter.cpp" />
     <ClCompile Include="FileManager.cpp" />
     <ClCompile Include="LoginAckCommand.cpp" />
     <ClCompile Include="stdafx.cpp">

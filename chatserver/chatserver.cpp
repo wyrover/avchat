@@ -8,6 +8,7 @@
 #include "ServerContext.h"
 #include "client.h"
 #include "../common/errcode.h"
+#include "../common/Utils.h"
 #include "../common/ChatOverlappedData.h"
 #include "../common/FileRequestCommand.h"
 #include "../common/NetConstants.h"
@@ -36,7 +37,7 @@ ChatServer::~ChatServer()
 	WSACleanup();
 }
 
-HERRCODE ChatServer::init()
+HERRCODE ChatServer::start()
 {
 	auto hr = initWinsock();
 	if (hr != H_OK)
@@ -58,7 +59,7 @@ HERRCODE ChatServer::initWinsock()
 	wVersionRequested = MAKEWORD(2, 2);
 	err = WSAStartup(wVersionRequested, &wsaData);
 	if (err != 0)
-		return H_SERVER_NETWORK_ERROR;
+		return H_NETWORK_ERROR;
 
 	return H_OK;
 }
@@ -67,7 +68,7 @@ int ChatServer::initListen()
 {
 	listenSock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (listenSock_ == INVALID_SOCKET)
-		return H_SERVER_NETWORK_ERROR;
+		return H_NETWORK_ERROR;
 	hComp_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (hComp_ == NULL)
 		return H_SERVER_ERROR;
@@ -85,12 +86,12 @@ int ChatServer::initListen()
 
 	int ret = bind(listenSock_, (const sockaddr*)&addr, sizeof(sockaddr_in));
 	if (ret != 0) {
-		return H_SERVER_NETWORK_ERROR;
+		return H_NETWORK_ERROR;
 	}
 
 	ret = listen(listenSock_, SOMAXCONN);
 	if (ret != 0) {
-		return H_SERVER_NETWORK_ERROR;
+		return H_NETWORK_ERROR;
 	}
 
 	GUID guidAcceptEx = WSAID_ACCEPTEX;
@@ -99,26 +100,22 @@ int ChatServer::initListen()
 	ret = WSAIoctl(listenSock_, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx,
 		sizeof(GUID), &lpfnAcceptEx, sizeof(void*), &bytes, NULL, NULL);
 	if (!(ret == 0 && lpfnAcceptEx)) {
-		return H_SERVER_NETWORK_ERROR;
+		return H_NETWORK_ERROR;
 	}
 	ret = WSAIoctl(listenSock_, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidGetAcceptExSockaddrs,
 		sizeof(GUID), &lpfnGetAcceptExSockaddrs, sizeof(void*), &bytes, NULL, NULL);
 	if (!(ret == 0 && lpfnGetAcceptExSockaddrs)) {
-		return H_SERVER_NETWORK_ERROR;
+		return H_NETWORK_ERROR;
 	}
 
-	int threadCount = Utils::GetCpuCount() * 2;
-	std::vector<std::thread> threads;
+	int threadCount = base::Utils::GetCpuCount() * 2;
 	for (int i = 0; i < threadCount; ++i){
-		threads.push_back(std::thread(&ChatServer::run, this));
-	}
-	for (auto& thread : threads){
-		thread.join();
+		threads_.push_back(std::thread(&ChatServer::threadFun, this));
 	}
 	return H_OK;
 }
 
-void ChatServer::run()
+void ChatServer::threadFun()
 {
 	TRACE_IF(LOG_IOCP, "chatserver::run %d\n", GetCurrentThreadId());
 	while (!quit_) {
@@ -199,4 +196,11 @@ bool ChatServer::quit()
 {
 	quit_ = true;
 	return true;
+}
+
+void ChatServer::wait()
+{
+	for (auto& thread : threads_){
+		thread.join();
+	}
 }

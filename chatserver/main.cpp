@@ -7,11 +7,11 @@
 int _tmain(int argc, _TCHAR* argv[])
 {
 	ChatServer server;
-	auto hr = server.init();
+	auto hr = server.start();
 	if (hr != H_OK) {
 		printf("server init error\n");
 		return -1;
 	}
-	server.run();
+	server.wait();
 	return 0;
 }

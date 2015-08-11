@@ -33,16 +33,6 @@ Utils::~Utils()
 {
 }
 
-unsigned int Utils::GetCpuCount()
-{
-	unsigned count = std::thread::hardware_concurrency();
-	if (count != 0)
-		return count;
-	SYSTEM_INFO sysinfo;
-	GetSystemInfo(&sysinfo);
-	return sysinfo.dwNumberOfProcessors;
-}
-
 int Utils::GeneratePasswordHash(const std::string& password, std::string* password_hash)
 {
 	using namespace CryptoPP;

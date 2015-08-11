@@ -23,7 +23,7 @@ void LoginDialog::accept()
 		setError(L"用户名或者密码不能够为空");
 		return;
 	}
-	if (!client_->login(username.toStdWString(), password.toStdWString())) {
+	if (client_->login(username.toStdWString(), password.toStdWString()) != H_OK) {
 		setError(L"登录失败");
 		return;
 	}

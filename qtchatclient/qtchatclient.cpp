@@ -23,7 +23,7 @@ qtchatclient::qtchatclient(ChatClient* client, QWidget *parent)
 	textEdit->setFrameStyle(QFrame::NoFrame);
 	connect(userListView, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(onUsernameDoubleClicked(const QModelIndex&)));
 	client_->setController(this);
-	client_->startThread();
+	client_->start();
 	setWindowTitle(QString("%1@public chat room").arg(QString::fromStdWString(client_->getUsername())));
 	QFile file(":/Resources/scrollbar.qss");
 	file.open(QFile::ReadOnly | QFile::Text);

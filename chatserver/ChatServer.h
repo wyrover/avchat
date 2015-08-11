@@ -1,25 +1,21 @@
 #pragma once
 
-#include "ClientManager.h"
 #include "CommandCenter.h"
 class ChatOverlappedData;
-class ChatCommand;
-class MessageCommand;
-class LoginCommand;
-class FileRequestCommand;
 
 class ChatServer
 {
 public:
 	ChatServer();
 	~ChatServer();
-	HERRCODE init();
-	void run();
+	HERRCODE start();
+	void wait();
 	bool quit();
 
 private:
 	HERRCODE initWinsock();
 	HERRCODE initListen();
+	void threadFun();
 
 	bool queueCompletionStatus();
 	void onAccept(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
@@ -28,6 +24,7 @@ private:
 private:
 	SOCKET listenSock_;
 	HANDLE hComp_;
+	std::vector<std::thread> threads_;
 	std::atomic<bool> quit_;
 	std::atomic<int>  acceptRequest_;
 	std::atomic<int> acceptedRequest_;

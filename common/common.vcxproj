@@ -87,6 +87,7 @@
     <ClInclude Include="buffer.h" />
     <ClInclude Include="ChatCommand.h" />
     <ClInclude Include="ChatOverlappedData.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="errcode.h" />
     <ClInclude Include="FileExistsCommand.h" />
     <ClInclude Include="FileExistsAckCommand.h" />
@@ -105,6 +106,7 @@
   <ItemGroup>
     <ClCompile Include="ChatCommand.cpp" />
     <ClCompile Include="ChatOverlappedData.cpp" />
+    <ClCompile Include="Utils.cpp" />
     <ClCompile Include="FileExistsCommand.cpp" />
     <ClCompile Include="FileExistsAckCommand.cpp" />
     <ClCompile Include="FileRequestAckCommand.cpp" />
