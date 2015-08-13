@@ -4,6 +4,9 @@
 #include <QImageReader>
 #include <qbubbletext.h>
 #include <QMovie>
+#include <QDir>
+#include <QFile>
+#include "../chatclient/Utils.h"
 const static QSize kAvatarSize(30, 30);
 
 TextViewer::TextViewer(QWidget* parent)
@@ -25,12 +28,12 @@ TextViewer::~TextViewer()
 {
 }
 
-void TextViewer::addMessage(const QString& username, bool self, time_t timestamp, const QString& message)
+void TextViewer::addMessage(const QString& username, bool self, time_t timestamp, const QString& message, const QString& imageDir)
 {
-	addBubbleTextFrame(username, message, self);
+	addBubbleTextFrame(username, message, self, imageDir);
 }
 
-void TextViewer::addBubbleTextFrame(const QString& username, const QString& message, bool self)
+void TextViewer::addBubbleTextFrame(const QString& username, const QString& message, bool self, const QString& imageDir)
 {
 	bool left = !self;
 	QTextCursor c(document());
@@ -81,8 +84,26 @@ void TextViewer::addBubbleTextFrame(const QString& username, const QString& mess
 
 	blockFormat.setProperty(QTextFormat::UserProperty, "BubbleText");
 	c.insertBlock(blockFormat);
-	//addPicture(c, "aaa");
-	c.insertText(message);
+	if (message.indexOf("<img") != -1) {
+		std::vector<std::wstring> imageList;
+		std::wstring qtMessage;
+		client::Utils::XmlMessageToQtMessage(message.toStdWString(), &imageList, &qtMessage);
+		int index = 0;
+		int pos = -1;
+		int imageIndex = 0;
+		while ((pos = qtMessage.find(L'\uffec', index)) != -1) {
+			auto text = QString::fromStdWString(qtMessage.substr(index, pos - index));
+			QDir dir(imageDir);
+			c.insertText(text);
+			addPicture(c, dir.filePath(QString::fromStdWString(imageList[imageIndex])));
+			imageIndex++;
+			index = pos+1;
+		}
+		auto text = QString::fromStdWString(qtMessage.substr(index));
+		c.insertText(text);
+	} else {
+		c.insertText(message);
+	}
 	c.movePosition(QTextCursor::End);
 	setTextCursor(c);
 }
@@ -120,7 +141,36 @@ void TextViewer::outputTextFrame(QTextFrame* frame)
 	qDebug() << "\n==end of a textframe===\n";
 }
 
-void TextViewer::addPicture(QTextCursor& c, const QString& picUrl)
+void TextViewer::addPicture(QTextCursor& c, const QString& picFile)
+{
+	QImage img;
+	img.load(picFile);
+	document()->addResource(QTextDocument::ImageResource, picFile, QVariant(img));
+
+	QTextImageFormat imageFormat;
+	float maxImageWidth = width() / 2.f;
+	if (img.width() < maxImageWidth) {
+		imageFormat.setWidth(img.width());
+		imageFormat.setHeight(img.height());
+	} else {
+		imageFormat.setWidth(maxImageWidth);
+		imageFormat.setHeight(maxImageWidth / img.width() * img.height());
+	}
+	imageFormat.setName(picFile);
+	c.insertImage(imageFormat);
+
+	QFileInfo f(picFile);
+	auto suf = f.suffix().toLower();
+	if (suf == "gif") {
+		QMovie* movie = new QMovie(this);
+		movie->setFileName(picFile);
+		movie->setCacheMode(QMovie::CacheNone);
+		connect(movie, SIGNAL(frameChanged(int)), this, SLOT(onAnimate(int)));
+		movie->start();
+	}
+}
+
+void TextViewer::testGif(QTextCursor& c)
 {
 	QUrl testUri;
 	QImage testImage;
@@ -143,11 +193,10 @@ void TextViewer::addPicture(QTextCursor& c, const QString& picUrl)
 
 void TextViewer::onAnimate(int a)
 {
-	QUrl testUri;
-	testUri.setUrl("qrc:///Resources/keke.gif");
-	if (QMovie* movie = qobject_cast<QMovie*>(sender())) {
+	QMovie* movie = qobject_cast<QMovie*>(sender());
+	if (movie) {
 		document()->addResource(QTextDocument::ImageResource,
-			testUri, movie->currentPixmap());
+			movie->fileName(), movie->currentPixmap());
 		setLineWrapColumnOrWidth(lineWrapColumnOrWidth());
 	}
 }

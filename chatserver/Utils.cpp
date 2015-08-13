@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Utils.h"
-
+#include <array>
 #define _CRT_SECURE_NO_DEPRECATE
 #define CRYPTOPP_DEFAULT_NO_DLL
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
@@ -129,14 +129,82 @@ bool Utils::ValidatePasswordHash(const std::string& password, const std::string&
 	return boost::iequals(pwd_hash,password_hash);
 }
 
-std::string Utils::Utf16ToUtf8String(const std::wstring& str)
-{
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
-	return convert.to_bytes(str);
+
+static std::vector<unsigned char> kPngMagic = {
+	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+};
+
+static std::vector<unsigned char> kGifMagic1 = {
+	0x47, 0x49, 0x46, 0x38, 0x39, 0x61
+};
+static std::vector<unsigned char> kGifMagic2 = {
+	0x47, 0x49, 0x46, 0x38, 0x37, 0x61
+};
+static std::vector<unsigned char> kJpegExifMagic = {
+	0xFF, 0xD8, 0xFF, 0xE1,
+};
+static std::vector<unsigned char> kJpegJfifMagic = {
+	0xFF, 0xD8, 0xFF, 0xE0,
+};
+static std::vector<unsigned char> kBmpMagic = {
+	0x42, 0x4d,
+};
+
+static std::vector<std::wstring> kImageExts = {
+	L"jpg", L"jpeg", L"gif", L"png", L"bmp",
+};
+
+bool compareMagic(buffer& buf, const std::vector<unsigned char>& magic) {
+	if (buf.size() > magic.size()) {
+		bool isImage = true;
+		for (int i = 0; i < magic.size(); ++i) {
+			if (magic[i] != (unsigned char)buf[i]) {
+				isImage = false;
+				break;
+			}
+		}
+		if (isImage)
+			return true;
+	}
+	return false;
 }
 
-std::wstring Utils::Utf8ToUtf16String(const std::string& str)
+bool Utils::IsImage(buffer& buf)
 {
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
-	return convert.from_bytes(str);
+	if (compareMagic(buf, kPngMagic))
+		return true;
+	if (compareMagic(buf, kGifMagic1))
+		return true;
+	if (compareMagic(buf, kGifMagic2))
+		return true;
+	if (compareMagic(buf, kJpegJfifMagic))
+		return true;
+	if (compareMagic(buf, kJpegExifMagic))
+		return true;
+	if (compareMagic(buf, kBmpMagic))
+		return true;
+	return false;
+}
+
+
+bool Utils::IsImageExt(const std::wstring& ext)
+{
+	return std::find_if(kImageExts.begin(), kImageExts.end(), [&ext](const std::wstring& item) {
+		return boost::iequals(item, ext); }) != kImageExts.end();
+}
+
+std::wstring Utils::GetRandomFileName()
+{
+	using namespace CryptoPP;
+	AutoSeededRandomPool rng;
+	std::vector<byte> buffer(13);
+	rng.GenerateBlock(buffer.data(), buffer.size());
+	std::wstring fileName;
+	for (int i = 0; i < buffer.size(); i++) {
+		// restrict to length of range [a..z0..9]
+		int b = (buffer[i] % 36);
+		wchar_t c = (char)(b < 26 ? (b + L'a') : (b - 26 + L'0'));
+		fileName += c;
+	}
+	return fileName;
 }

@@ -3,8 +3,15 @@
 #include "../common/NetConstants.h"
 #include "../common/ChatOverlappedData.h"
 #include "../common/trace.h"
+#include "../common/FileUtils.h"
+#include "Utils.h"
 #include "CommandCenter.h"
 #include "IChatClientController.h"
+#include "ImageMessageForSend.h"
+#include "ImageMessageForRecv.h"
+#include "chatclient.h"
+
+using client::Utils;
 
 CommandCenter::CommandCenter()
 {
@@ -88,7 +95,29 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 			onCmdUserList(socket, userVec);
 			break;
 		}
+		case net::kCommandType_FileExistsAck:
+		{
+			auto size = stream.getInt();
+			ImageMessageForSend* msg = (ImageMessageForSend*)stream.getInt();
+			auto urlList = stream.getStringVec();
+			onCmdFileCheckAck(socket, msg, urlList);
+			break;
+		}
+		case net::kCommandType_FileUploadAck:
+		{
+			auto size = stream.getInt();
+			ImageMessageForSend* msg = (ImageMessageForSend*)stream.getInt();
+			auto urlList = stream.getStringVec();
+			onCmdFileUploadAck(socket, msg, urlList);
+			break;
+		}
+		case net::kCommandType_FileDownloadAck:
+		{
+			onCmdFileDownloadAck(socket, stream);
+			break;
+		}
 		default:
+			assert(false);
 			break;
 	}
 	return 0;
@@ -97,7 +126,25 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 void CommandCenter::onCmdMessage(SOCKET socket, const std::wstring& sender, const std::wstring& recver,
 	 time_t timestamp, const std::wstring& message)
 {
-	controller_->onNewMessage(sender, recver, timestamp, message);
+	if (message.find(L"<img") == -1) {
+		controller_->onNewMessage(sender, recver, timestamp, message);
+	} else {
+		ImageMessageForRecv* msg = new ImageMessageForRecv;
+		msg->setRawMessage(message, sender, recver, timestamp);
+		auto list = msg->getNeedDownloadFileList(client_->getImageDir());
+		if (list.empty()) {
+			delete msg;
+			controller_->onNewMessage(sender, recver, timestamp, message);
+			return;
+		}
+		SockStream ss;
+		ss.writeInt(net::kCommandType_FileDownload);
+		ss.writeInt(0); //dummy size
+		ss.writeInt((int)msg);
+		ss.writeStringVec(list);
+		ss.flushSize();
+		queueSendRequest(socket, ss);
+	}
 }
 
 void CommandCenter::onCmdUserList(SOCKET socket, const std::vector<std::wstring>& userList)
@@ -114,7 +161,7 @@ void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
 	WSABUF wsaBuf;
 	wsaBuf.buf = stream.getBuf();
 	wsaBuf.len = stream.getSize();
-	ChatOverlappedData* ol = new ChatOverlappedData(net::kNetType_Send);
+	ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_Send);
 	int ret = WSASend(socket, &wsaBuf, 1, NULL, 0, ol, NULL);
 	int errcode = WSAGetLastError();
 	if (ret != 0) {
@@ -124,7 +171,7 @@ void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
 
 void CommandCenter::queueRecvCmdRequest(SOCKET socket)
 {
-	auto ol = new ChatOverlappedData(net::kNetType_Recv);
+	auto ol = new ChatOverlappedData(net::kAction_Recv);
 	ol->setSocket(socket);
 	buffer& buf = ol->getBuf();
 	WSABUF wsaBuf;
@@ -139,8 +186,9 @@ void CommandCenter::queueRecvCmdRequest(SOCKET socket)
 	}
 }
 
-void CommandCenter::setController(IChatClientController* controller)
+void CommandCenter::setController(ChatClient* client, IChatClientController* controller)
 {
+	client_ = client;
 	controller_ = controller;
 }
 
@@ -148,4 +196,60 @@ std::vector<std::wstring> CommandCenter::getUserList()
 {
 	std::lock_guard<std::recursive_mutex> guard(userMutex_);
 	return userList_;
+}
+
+void CommandCenter::sendImageMessage(SOCKET socket, ImageMessageForSend* message)
+{
+	SockStream ss;
+	ss.writeInt(net::kCommandType_FileExists);
+	ss.writeInt(0); //dummy size
+	ss.writeInt((int)message);
+	ss.writeStringVec(message->getHashList());
+	ss.flushSize();
+	queueSendRequest(socket, ss);
+}
+
+void CommandCenter::onCmdFileCheckAck(SOCKET socket, ImageMessageForSend* msg, const std::vector<std::wstring>& urlList)
+{
+	auto uploadList = msg->getUploadFileList(urlList);
+	SockStream ss;
+	ss.writeInt(net::kCommandType_FileUpload);
+	ss.writeInt(0);
+	ss.writeInt((int)msg);
+	ss.writeInt(uploadList.size());
+	for (auto path : uploadList) {
+		auto ext = FileUtils::getFileExt(path);
+		ss.writeString(ext);
+		buffer outBuf;
+		FileUtils::ReadAll(path, outBuf);
+		ss.writeBuffer(outBuf);
+	}
+	ss.flushSize();
+	queueSendRequest(socket, ss);
+}
+
+void CommandCenter::onCmdFileUploadAck(SOCKET socket, ImageMessageForSend* msg,
+	const std::vector<std::wstring>& urlList)
+{
+	auto message = msg->translateMessage(urlList);
+	SockStream stream;
+	stream.writeInt(net::kCommandType_Message);
+	stream.writeInt(0);
+	stream.writeString(client_->getUsername());
+	stream.writeString(msg->getRecver());
+	stream.writeInt64(msg->getTimeStamp());
+	stream.writeString(message);
+	stream.flushSize();
+	queueSendRequest(socket, stream);
+}
+
+void CommandCenter::onCmdFileDownloadAck(SOCKET socket, SockStream& stream)
+{
+	auto size = stream.getInt();
+	auto msg = (ImageMessageForRecv*)stream.getInt();
+	msg->writeFile(client_->getImageDir(), stream);
+	if (controller_) {
+		controller_->onNewMessage(msg->getSender(), msg->getRecver(), msg->getTimeStamp(), msg->getRawMessage());
+	}
+	delete msg;
 }

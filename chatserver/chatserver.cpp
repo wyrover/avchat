@@ -120,7 +120,7 @@ void ChatServer::threadFun()
 	TRACE_IF(LOG_IOCP, "chatserver::run %d\n", GetCurrentThreadId());
 	while (!quit_) {
 		if (acceptRequest_ < kMaxAcceptRequest) {
-			ChatOverlappedData* overlap = new ChatOverlappedData(net::kNetType_Accept);
+			ChatOverlappedData* overlap = new ChatOverlappedData(net::kAction_Accept);
 			SOCKET acceptSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			overlap->setSocket(acceptSock);
 			buffer& recvBuf = overlap->getBuf();
@@ -155,12 +155,12 @@ bool ChatServer::queueCompletionStatus()
 	}
 	int type = ol->getNetType();
 	TRACE_IF(LOG_IOCP, "get queued completion status type = %d\n", type);
-	if (type == net::kNetType_Accept) {
+	if (type == net::kAction_Accept) {
 		onAccept(ol, bytes, key);
-	} else if (type == net::kNetType_Recv) {
+	} else if (type == net::kAction_Recv) {
 		TRACE("get recv request result for ol %x\n", ol);
 		onRecv(ol, bytes, key);
-	} else if (type == net::kNetType_Send) {
+	} else if (type == net::kAction_Send) {
 
 	} 
 	return true; 

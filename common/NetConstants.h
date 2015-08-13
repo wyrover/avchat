@@ -1,23 +1,36 @@
 #pragma once
 namespace net
 {
-	enum NetworkType {
-		kNetType_Accept,
-		kNetType_Send,
-		kNetType_Recv,
+	enum ActionType {
+		kAction_Accept,
+		kAction_Send,
+		kAction_Recv,
+		kAction_SendMessage,
 	};
 
 	enum CommandType {
 		kCommandType_Login,
 		kCommandType_LoginAck,
 		kCommandType_Message,
+		kCommandType_MessageAck,
 		kCommandType_UserList,
-		kCommandType_FileRequest,
-		kCommandType_FileRequestAck,
-		kCommandType_FileTransfer,
-		kCommandType_ImageMessageClient,
-		kCommandType_ImageMessage,
+		kCommandType_UserListAck,
 		kCommandType_FileExists,
 		kCommandType_FileExistsAck,
+		kCommandType_FileUpload,
+		kCommandType_FileUploadAck,
+		kCommandType_FileDownload,
+		kCommandType_FileDownloadAck,
+
+		kCommandType_ImageMessage,
+		kCommandType_FileRequest,
+		kCommandType_FileRequestAck,
 	};
+
+	enum FileType {
+		kPng,
+		kJpeg,
+		kGif,
+	};
+
 }

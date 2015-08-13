@@ -6,7 +6,6 @@ ChatOverlappedData::ChatOverlappedData(int type)
 {
 	WSAOVERLAPPED* ol = (WSAOVERLAPPED*)this;
 	memset(ol, 0, sizeof(WSAOVERLAPPED));
-	cmdNeedSize_ = -1;
 }
 
 ChatOverlappedData::~ChatOverlappedData()
@@ -38,32 +37,12 @@ buffer& ChatOverlappedData::getBuf()
 	return recvBuf_;
 }
 
-buffer& ChatOverlappedData::getCmdBuf()
+void ChatOverlappedData::setProp(int value)
 {
-	return cmdBuf_;
+	prop_ = value;
 }
 
-int& ChatOverlappedData::getCmdNeedSize()
+int ChatOverlappedData::getProp()
 {
-	return cmdNeedSize_;
-}
-
-int ChatOverlappedData::getCommandType() const
-{
-	return commandType_;
-}
-
-void ChatOverlappedData::setCommandType(int type)
-{
-	commandType_ = type;
-}
-
-void ChatOverlappedData::setMessage(const std::wstring& message)
-{
-	message_ = message;
-}
-
-std::wstring ChatOverlappedData::getMessage()
-{
-	return message_;
+	return prop_;
 }

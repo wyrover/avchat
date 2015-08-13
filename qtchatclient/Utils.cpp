@@ -1,14 +1,14 @@
-﻿#include "QtClientUtils.h"
+﻿#include "Utils.h"
 
-QtClientUtils::QtClientUtils()
+Utils::Utils()
 {
 }
 
-QtClientUtils::~QtClientUtils()
+Utils::~Utils()
 {
 }
 
-std::wstring QtClientUtils::textEditToMessageText(QTextEdit* textEdit)
+std::wstring Utils::textEditToMessageText(QTextEdit* textEdit)
 {
 	std::wstring result;
 	QTextCursor c(textEdit->document());

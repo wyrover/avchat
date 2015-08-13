@@ -10,24 +10,17 @@ public:
 	ChatOverlappedData(int type);
 	~ChatOverlappedData();
 	buffer& getBuf();
-	buffer& getCmdBuf();
-	int& getCmdNeedSize();
 	
 	void setSocket(SOCKET acceptSock);
 	SOCKET getSocket();
 	int getNetType() const;
 	void setNetType(int type);
-	int getCommandType() const;
-	void setCommandType(int type);
-	void setMessage(const std::wstring& message);
-	std::wstring getMessage();
+	void setProp(int value);
+	int getProp();
 
 private:
 	int netType_;
-	int commandType_;
 	buffer recvBuf_;
-	buffer cmdBuf_;
 	SOCKET sock_;
-	int cmdNeedSize_;
-	std::wstring message_;
+	int prop_;
 };

@@ -1,6 +1,7 @@
 #include "LoginDialog.h"
 #include "../chatclient/ChatClient.h"
-
+#include <Shlobj.h>
+#include <Shlwapi.h>
 LoginDialog::LoginDialog(ChatClient* client)
 {
 	setupUi(this);
@@ -26,6 +27,13 @@ void LoginDialog::accept()
 	if (client_->login(username.toStdWString(), password.toStdWString()) != H_OK) {
 		setError(L"µÇÂ¼Ê§°Ü");
 		return;
+	} else {
+		TCHAR szPath[MAX_PATH];
+		if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, szPath))) {
+			PathAppend(szPath, L"\\fakecoder\\image_cache\\");
+			SHCreateDirectoryEx(NULL, szPath, NULL);
+			client_->setImageCacheDir(szPath);
+		}
 	}
 	__super::accept();
 }

@@ -29,7 +29,7 @@ namespace base
 		WSABUF wsaBuf;
 		wsaBuf.buf = stream.getBuf();
 		wsaBuf.len = stream.getSize();
-		ChatOverlappedData* ol = new ChatOverlappedData(net::kNetType_Send);
+		ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_Send);
 		int ret = WSASend(socket, &wsaBuf, 1, NULL, 0, ol, NULL);
 		int errcode = WSAGetLastError();
 		if (ret != 0) {
@@ -41,7 +41,7 @@ namespace base
 
 	HERRCODE Utils::QueueRecvCmdRequest(SOCKET socket)
 	{
-		auto ol = new ChatOverlappedData(net::kNetType_Recv);
+		auto ol = new ChatOverlappedData(net::kAction_Recv);
 		ol->setSocket(socket);
 		buffer& buf = ol->getBuf();
 		WSABUF wsaBuf;

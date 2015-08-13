@@ -84,17 +84,22 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChatClient.h" />
-    <ClInclude Include="ChatClientUtils.h" />
+    <ClInclude Include="ImageMessageForRecv.h" />
+    <ClInclude Include="ImageMessageForSend.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="CommandCenter.h" />
     <ClInclude Include="FileManager.h" />
     <ClInclude Include="IChatClientController.h" />
     <ClInclude Include="LoginAckCommand.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="UtilsTest.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chatclient.cpp" />
-    <ClCompile Include="ChatClientUtils.cpp" />
+    <ClCompile Include="ImageMessageForRecv.cpp" />
+    <ClCompile Include="ImageMessageForSend.cpp" />
+    <ClCompile Include="Utils.cpp" />
     <ClCompile Include="client.cpp" />
     <ClCompile Include="CommandCenter.cpp" />
     <ClCompile Include="FileManager.cpp" />
@@ -103,6 +108,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="UtilsTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\common\common.vcxproj">

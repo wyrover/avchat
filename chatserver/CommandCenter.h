@@ -1,8 +1,11 @@
 #pragma once
 
 #include "ClientManager.h"
+#include "FileMan.h"
+
 class ChatCommand;
 class SockStream;
+
 struct CommandInfo
 {
 	CommandInfo() {
@@ -23,6 +26,9 @@ private:
 	int handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int inLen);
 	void onCmdLogin(SOCKET socket, const std::wstring& email, const std::wstring& password);
 	void onCmdMessage(SOCKET socket, const std::wstring& sender, const std::wstring& recver, const std::wstring& message);
+	void onCmdFileCheck(SOCKET socket, int id, const std::vector<std::wstring>& hashList);
+	void onCmdFileUpload(SOCKET socket, SockStream& stream);
+	void onCmdFileDownload(SOCKET socket, SockStream& stream);
 
 	void updateUserlist();
 	void queueSendRequest(SOCKET socket, SockStream& stream);
@@ -31,4 +37,5 @@ private:
 private:
 	std::map<SOCKET, CommandInfo> cmdMap_;
 	ClientManager clientMan_;
+	FileMan fileMan_;
 };

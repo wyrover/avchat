@@ -40,5 +40,6 @@ void OneToOneRoom::addMessage(const std::wstring& username, time_t timestamp, co
 	COleDateTime oleTime((time_t)timestamp);
 	QString timeStr = QString::fromWCharArray(oleTime.Format(VAR_TIMEVALUEONLY).GetBuffer(0));
 	ui.textBrowser->insertHtml(QString(R"(<font color="blue">%1 %2</font><br>)").arg(QString::fromStdWString(username), timeStr));
-	ui.textBrowser->addMessage(QString::fromStdWString(username), username == client_->getUsername(), timestamp, QString::fromStdWString(message));
+	ui.textBrowser->addMessage(QString::fromStdWString(username), username == client_->getUsername(),
+		timestamp, QString::fromStdWString(message), QString::fromStdWString(client_->getImageDir()));
 }

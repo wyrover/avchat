@@ -78,7 +78,7 @@
   <ItemGroup>
     <ClCompile Include="BubbleTextObject.cpp" />
     <ClCompile Include="ChatClientController.cpp" />
-    <ClCompile Include="QtClientUtils.cpp" />
+    <ClCompile Include="Utils.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_BubbleTextObject.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
@@ -201,7 +201,7 @@
     </CustomBuild>
     <ClInclude Include="ChatClientController.h" />
     <ClInclude Include="ClientMessage.h" />
-    <ClInclude Include="QtClientUtils.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="debugout.h" />
     <ClInclude Include="GeneratedFiles\ui_logindialog.h" />
     <ClInclude Include="GeneratedFiles\ui_OneToOneRoom.h" />

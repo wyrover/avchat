@@ -3,7 +3,8 @@
 #include "../chatclient/ChatClient.h"
 #include <QtWidgets/QApplication>
 #include <assert.h>
-#include <memory.>
+#include <memory>
+
 
 int main(int argc, char *argv[])
 {
@@ -11,6 +12,7 @@ int main(int argc, char *argv[])
 	qRegisterMetaType<int64_t>();
 	std::unique_ptr<ChatClient> client(new ChatClient());
 	client->init(L"127.0.0.1", 2333);
+
 	LoginDialog dlg(client.get());
 	auto result = dlg.exec();
 	if (result == QDialog::Rejected)

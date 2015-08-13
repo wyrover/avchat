@@ -2,10 +2,11 @@
 
 #include <QTextEdit>
 
-class QtClientUtils
+
+class Utils
 {
 public:
-	QtClientUtils();
-	~QtClientUtils();
+	Utils();
+	~Utils();
 	static std::wstring textEditToMessageText(QTextEdit* textEdit);
 };

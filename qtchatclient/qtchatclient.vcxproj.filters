@@ -122,7 +122,7 @@
     <ClCompile Include="webfile.cpp">
       <Filter>webfile</Filter>
     </ClCompile>
-    <ClCompile Include="QtClientUtils.cpp">
+    <ClCompile Include="Utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -189,7 +189,7 @@
     <ClInclude Include="ClientMessage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="QtClientUtils.h">
+    <ClInclude Include="Utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

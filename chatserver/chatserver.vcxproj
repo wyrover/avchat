@@ -64,7 +64,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;cryptlib.lib;mysqlcppconn.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;cryptlib.lib;mysqlcppconn.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\usr\lib\cryptopp562\Win32\Output\Debug;D:\usr\lib\boost_1_57_0\lib32-msvc-12.0;E:\projects\db\mysql\out\driver\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -95,6 +95,7 @@
     <ClInclude Include="ClientManager.h" />
     <ClInclude Include="CommandCenter.h" />
     <ClInclude Include="DBContext.h" />
+    <ClInclude Include="FileMan.h" />
     <ClInclude Include="ServerContext.h" />
     <ClInclude Include="SimpleTest.h" />
     <ClInclude Include="stdafx.h" />
@@ -108,6 +109,7 @@
     <ClCompile Include="ClientManager.cpp" />
     <ClCompile Include="CommandCenter.cpp" />
     <ClCompile Include="DBContext.cpp" />
+    <ClCompile Include="FileMan.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ServerContext.cpp" />
     <ClCompile Include="SimpleTest.cpp" />

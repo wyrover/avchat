@@ -3,6 +3,10 @@
 
 ServerContext::ServerContext()
 {
+	WCHAR szPath[MAX_PATH];
+	SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, szPath);
+	PathAppend(szPath, L"\\fakecoder\\server_cache\\");
+	SHCreateDirectoryEx(NULL, szPath, NULL);
 }
 
 ServerContext::~ServerContext()
@@ -24,4 +28,9 @@ ServerContext* ServerContext::getInstance()
 DBContext* ServerContext::getDBContext()
 {
 	return &db_;
+}
+
+std::wstring ServerContext::getImageDir()
+{
+	return imageDir_;
 }

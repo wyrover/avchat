@@ -8,7 +8,6 @@
 #include "targetver.h"
 
 #include <stdio.h>
-#include <tchar.h>
 #include <assert.h>
 #include <thread>
 #include <memory>
@@ -16,10 +15,18 @@
 #include <mutex>
 #include <atomic>
 #include <vector>
+#include <codecvt>
+#include <locale>
+#include <iostream>
+#include <sstream>
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
+#include <tchar.h>
 #include <Ws2spi.h>
 #include <ws2tcpip.h>
 #include <MSWSock.h>
+#include <Shlobj.h>
+#include <Shlwapi.h>
+#include <bcrypt.h>     // Cryptography API#include <windows.h>

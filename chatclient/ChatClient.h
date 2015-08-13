@@ -8,16 +8,8 @@
 #include <Windows.h>
 #include "../common/errcode.h"
 #include "CommandCenter.h"
+#include "IChatClientController.h"
 class ChatOverlappedData;
-
-class IChatClientController {
-public:
-	virtual void onNewMessage(const std::wstring& sender, const std::wstring& recver,
-		int64_t timestamp, const std::wstring& message) = 0;
-	virtual void onNewUserList() = 0;
-	virtual void onFileRequest(const std::wstring& sender, int64_t timestamp, bool isFolder,
-		const std::wstring& filename, int64_t fileSize) = 0;
-};
 
 class ChatClient
 {
@@ -27,6 +19,8 @@ public:
 	HERRCODE init(const std::wstring& serverAddr, int port);
 	HERRCODE login(const std::wstring& username, const std::wstring& password);
 	HERRCODE sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
+	void setImageCacheDir(const std::wstring& filePath);
+	std::wstring getImageDir();
 	std::vector<std::wstring> getUserList();
 	void setController(IChatClientController* controller);
 	std::wstring getUsername();
@@ -46,6 +40,7 @@ private:
 	std::atomic<bool> quit_;
 	CommandCenter cmdCenter_;
 	std::wstring username_;
+	std::wstring imageCache_;
 	SOCKET sock_;
 	sockaddr_in serverAddr_;
 	IChatClientController* controller_;

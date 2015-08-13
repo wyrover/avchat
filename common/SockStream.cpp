@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "SockStream.h"
+#include "buffer.h"
 
 SockStream::SockStream()
 {
@@ -48,7 +49,16 @@ int SockStream::writeFloat(float value)
 
 int SockStream::writeBool(bool value)
 {
-	return write((char)value);
+	return writeChar((char)value);
+}
+
+int SockStream::writeBoolVec(const std::vector<bool>& boolVec)
+{
+	int bytes = writeInt(boolVec.size());
+	for (auto v : boolVec) {
+		bytes += writeBool(v);
+	}
+	return bytes;
 }
 
 int SockStream::getInt()
@@ -132,7 +142,7 @@ int SockStream::write(char* value, size_t len)
 	return len;
 }
 
-int SockStream::write(char ch)
+int SockStream::writeChar(char ch)
 {
 	write(&ch, 1);
 	return 1;
@@ -171,8 +181,35 @@ std::vector<std::wstring> SockStream::getStringVec()
 	return result;
 }
 
+std::vector<bool> SockStream::getBoolVec()
+{
+	std::vector<bool> result;
+	int count = getInt();
+	while (count--) {
+		result.push_back(getBool());
+	}
+	return result;
+}
+
 void SockStream::flushSize()
 {
 	auto pSize = (int*)(getBuf() + 4);
 	*pSize = getSize();
+}
+
+int SockStream::writeBuffer(buffer& buf)
+{
+	int bytes = writeInt(buf.size());
+	bytes += write(buf.data(), buf.size());
+	return bytes;
+}
+
+void SockStream::getBuffer(buffer& buf)
+{
+	buffer tmpBuf;
+	int bytes = getInt();
+	char* ptr = buff_ + curr_;
+	tmpBuf.append(ptr, bytes);
+	curr_ += bytes;
+	tmpBuf.swap(buf);
 }

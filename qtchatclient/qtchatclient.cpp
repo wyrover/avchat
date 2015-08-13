@@ -7,7 +7,7 @@
 #include <QDebug>
 #include "OneToOneRoom.h"
 #include "BubbleTextObject.h"
-#include "QtClientUtils.h"
+#include "Utils.h"
 
 qtchatclient::qtchatclient(ChatClient* client, QWidget *parent)
 	: QMainWindow(parent), client_(client)
@@ -44,7 +44,8 @@ qtchatclient::~qtchatclient()
 
 void qtchatclient::onNewMessage(const std::wstring& sender, const std::wstring& username, int64_t timestamp, const std::wstring& message)
 {
-	emit uiNewMessage(QString::fromStdWString(sender), QString::fromStdWString(username), timestamp, QString::fromStdWString(message));
+	emit uiNewMessage(QString::fromStdWString(sender), QString::fromStdWString(username),
+		timestamp, QString::fromStdWString(message));
 }
 
 void qtchatclient::onNewUserList()
@@ -72,7 +73,7 @@ void qtchatclient::onSendClicked()
 {	
 	auto html = textEdit->toHtml();
 	auto text = textEdit->toPlainText().toStdWString();
-	auto message = QtClientUtils::textEditToMessageText(textEdit);
+	auto message = Utils::textEditToMessageText(textEdit);
 	client_->sendMessage(L"all", message, time(NULL));
 	textEdit->clear();
 }
@@ -100,7 +101,8 @@ __override void qtchatclient::onFileRequest(const std::wstring& sender, int64_t 
 
 void qtchatclient::addMessage(const QString& username, time_t timestamp, const QString& message)
 {
-	textBrowser->addMessage(username, username.toStdWString() == client_->getUsername(), timestamp, message);
+	textBrowser->addMessage(username, username.toStdWString() == client_->getUsername(), timestamp,
+		message, QString::fromStdWString(client_->getImageDir()));
 }
 
 void qtchatclient::onAddPicClicked()

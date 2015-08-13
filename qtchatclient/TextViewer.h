@@ -9,14 +9,15 @@ class TextViewer : public QTextBrowser
 public:
 	TextViewer(QWidget* parent = 0);
 	~TextViewer();
-	void addMessage(const QString& username, bool self, time_t timestamp, const QString& message);
+	void addMessage(const QString& username, bool self, time_t timestamp, const QString& message, const QString& imageDir);
 	virtual void paintEvent(QPaintEvent *e);
 
 private:
-	void addPicture(QTextCursor& c,const QString& picUrl);
+	void addPicture(QTextCursor& c, const QString& picUrl);
 	void outputTextBlocks();
 	void outputTextFrame(QTextFrame* frame);
-	void addBubbleTextFrame(const QString& username, const QString& message, bool self);
+	void addBubbleTextFrame(const QString& username, const QString& message, bool self, const QString& imageDir);
+	void testGif(QTextCursor& c);
 
 private:	
 	QImage hostImage_;

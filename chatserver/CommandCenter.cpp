@@ -89,6 +89,24 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 			onCmdMessage(socket, sender, recver, message);
 			break;
 		}
+		case net::kCommandType_FileExists:
+		{
+			auto size = stream.getInt();
+			auto id = stream.getInt();
+			auto hashList = stream.getStringVec();
+			onCmdFileCheck(socket, id, hashList);
+			break;
+		}
+		case net::kCommandType_FileUpload:
+		{
+			onCmdFileUpload(socket, stream);
+			break;
+		}
+		case net::kCommandType_FileDownload:
+		{
+			onCmdFileDownload(socket, stream);
+			break;
+		}
 		default:
 			break;
 	}
@@ -144,17 +162,39 @@ void CommandCenter::onCmdMessage(SOCKET socket, const std::wstring& sender, cons
 	}
 }
 
+void CommandCenter::onCmdFileCheck(SOCKET socket, int id, const std::vector<std::wstring>& hashList)
+{
+	std::vector<std::wstring> urlList;
+	for (auto hash : hashList) {
+		std::wstring url;
+		auto hr = fileMan_.getFileUrl(hash, &url);
+		if (hr == H_OK && !url.empty()) {
+			urlList.push_back(url);
+		} else {
+			urlList.push_back(L"");
+		}
+	}
+	SockStream stream;
+	stream.writeInt(net::kCommandType_FileExistsAck);
+	stream.writeInt(0);
+	stream.writeInt(id);
+	stream.writeStringVec(urlList);
+	stream.flushSize();
+	queueSendRequest(socket, stream);
+}
+
 void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
 {
 	WSABUF wsaBuf;
 	wsaBuf.buf = stream.getBuf();
 	wsaBuf.len = stream.getSize();
-	ChatOverlappedData* ol = new ChatOverlappedData(net::kNetType_Send);
+	TRACE("send to client bytes %d\n", stream.getSize());
+	ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_Send);
 	int ret = WSASend(socket, &wsaBuf, 1, NULL, 0, ol, NULL);
 	int errcode = WSAGetLastError();
 	if (ret != 0) {
 		assert(errcode == WSA_IO_PENDING);
-	}
+	} 
 }
 
 void CommandCenter::updateUserlist()
@@ -176,7 +216,7 @@ void CommandCenter::updateUserlist()
 
 void CommandCenter::queueRecvCmdRequest(SOCKET socket)
 {
-	auto ol = new ChatOverlappedData(net::kNetType_Recv);
+	auto ol = new ChatOverlappedData(net::kAction_Recv);
 	ol->setSocket(socket);
 	buffer& buf = ol->getBuf();
 	WSABUF wsaBuf;
@@ -189,4 +229,47 @@ void CommandCenter::queueRecvCmdRequest(SOCKET socket)
 		//TRACE_IF(LOG_IOCP, "wsarecv error %d\n", errcode);
 		assert(errcode == WSA_IO_PENDING);
 	}
+}
+
+void CommandCenter::onCmdFileUpload(SOCKET socket, SockStream& inStream)
+{
+	std::vector<std::wstring> urlList;
+	auto size = inStream.getInt();
+	int id = inStream.getInt();
+	auto count = inStream.getInt();
+	for (int i = 0; i < count; ++i) {
+		auto fileType = inStream.getString();
+		buffer buf;
+		inStream.getBuffer(buf);
+		std::wstring url;
+		fileMan_.addFile(buf, fileType, &url);
+		urlList.push_back(url);
+	}
+	SockStream outStream;
+	outStream.writeInt(net::kCommandType_FileUploadAck);
+	outStream.writeInt(0);
+	outStream.writeInt(id);
+	outStream.writeStringVec(urlList);
+	outStream.flushSize();
+	queueSendRequest(socket, outStream);
+}
+
+void CommandCenter::onCmdFileDownload(SOCKET socket, SockStream& stream)
+{
+	auto size = stream.getInt();
+	auto id = stream.getInt();
+	auto count = stream.getInt();
+	SockStream outStream;
+	outStream.writeInt(net::kCommandType_FileDownloadAck);
+	outStream.writeInt(0);
+	outStream.writeInt(id);
+	outStream.writeInt(count); 
+	for (int i = 0; i < count; ++i) {
+		auto url = stream.getString();
+		buffer outBuf;
+		fileMan_.getFile(url, outBuf);
+		outStream.writeBuffer(outBuf);
+	}
+	outStream.flushSize();
+	queueSendRequest(socket, outStream);
 }

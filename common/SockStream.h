@@ -1,5 +1,5 @@
 #pragma once
-
+class buffer;
 class SockStream
 {
 public:
@@ -12,8 +12,9 @@ public:
 	int writeDouble(double value);
 	int writeFloat(float value);
 	int writeBool(bool value);
-	int write(char* value, size_t len);
-	int write(char ch);
+	int writeBoolVec(const std::vector<bool>& boolVec);
+	int writeChar(char ch);
+	int writeBuffer(buffer& buf);
 	int writeStringVec(const std::vector<std::wstring>& strVec);
 	void flushSize();
 
@@ -23,13 +24,16 @@ public:
 	double getDouble();
 	float getFloat();
 	bool getBool();
+	void getBuffer(buffer& buf);
 	std::vector<std::wstring> getStringVec();
+	std::vector<bool> getBoolVec();
 
 	char* getBuf();
 	char* getCurrPtr();
 	size_t getSize();
 
 private:
+	int write(char* value, size_t len);
 	void ensureSize(int incre);
 	char* buff_;
 	size_t size_;

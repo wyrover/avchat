@@ -5,7 +5,10 @@
 #include "../common/SockStream.h"
 #include "../common/trace.h"
 #include "../common/Utils.h"
+#include "../common/FileUtils.h"
 #include "ChatClient.h"
+#include "ImageMessageForSend.h"
+#include "UtilsTest.h"
 
 
 #define LOG_LOGIN 1
@@ -107,9 +110,10 @@ HERRCODE ChatClient::sendMessage(const std::wstring& username, const std::wstrin
 		stream.flushSize();
 		queueSendRequest(sock_, stream);
 	} else {
-		ChatOverlappedData* ol = new ChatOverlappedData(net::kNetType_Send);
-		ol->setCommandType(net::kCommandType_ImageMessage);
-		ol->setMessage(message);
+		ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_SendMessage);
+		ImageMessageForSend* msg = new ImageMessageForSend;
+		msg->setRawMessage(message, username, timestamp);
+		ol->setProp((int)msg);
 		PostQueuedCompletionStatus(hComp_, 0, kCompKey, ol);
 	}
 	return H_OK;
@@ -138,11 +142,13 @@ bool ChatClient::queueCompletionStatus()
 	}
 	int type = ol->getNetType();
 	TRACE_IF(LOG_IOCP, "get queued completion status type = %d\n", type);
-	if (type == net::kNetType_Recv) {
-		TRACE("get recv request result for ol %x\n", ol);
+	if (type == net::kAction_Recv) {
+		TRACE("recved bytes count %d\n", bytes);
 		onRecv(ol, bytes, key);
-	} else if (type == net::kNetType_Send) {
+	} else if (type == net::kAction_Send) {
 
+	} else if (type == net::kAction_SendMessage) {
+		cmdCenter_.sendImageMessage(sock_, (ImageMessageForSend*)(ol->getProp()));
 	}
 	return true;
 }
@@ -155,7 +161,7 @@ void ChatClient::onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 void ChatClient::setController(IChatClientController* controller)
 {
 	controller_ = controller;
-	cmdCenter_.setController(controller);
+	cmdCenter_.setController(this, controller);
 }
 
 void ChatClient::quit(bool wait)
@@ -183,7 +189,7 @@ void ChatClient::queueSendRequest(SOCKET socket, SockStream& stream)
 	WSABUF wsaBuf;
 	wsaBuf.buf = stream.getBuf();
 	wsaBuf.len = stream.getSize();
-	ChatOverlappedData* ol = new ChatOverlappedData(net::kNetType_Send);
+	ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_Send);
 	int ret = WSASend(socket, &wsaBuf, 1, NULL, 0, ol, NULL);
 	int errcode = WSAGetLastError();
 	if (ret != 0) {
@@ -197,4 +203,15 @@ void ChatClient::start()
 	for (int i = 0; i < threadCount; ++i){
 		threads_.push_back(std::thread(&ChatClient::threadFun, this, i == 0));
 	}
+}
+
+void ChatClient::setImageCacheDir(const std::wstring& filePath)
+{
+	imageCache_ = filePath + username_ + L"\\";
+	FileUtils::MkDirs(imageCache_);
+}
+
+std::wstring ChatClient::getImageDir()
+{
+	return imageCache_;
 }

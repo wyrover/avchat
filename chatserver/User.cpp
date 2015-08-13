@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "../common/errcode.h"
+#include "../common/StringUtils.h"
 #include "User.h"
 #include "Utils.h"
 #include "ServerContext.h"
@@ -18,7 +19,7 @@ HERRCODE User::login(const std::wstring& email, const std::wstring& password)
 	auto loginStmt = ServerContext::getInstance()->getDBContext()->getLoginStmt();
 	auto statusStmt = ServerContext::getInstance()->getDBContext()->getStatusStmt();
 	try {
-		auto utf8email = Utils::Utf16ToUtf8String(email);
+		auto utf8email = StringUtils::Utf16ToUtf8String(email);
 		loginStmt->setString(1, utf8email);
 		std::unique_ptr<sql::ResultSet> res(loginStmt->executeQuery());
 		if (res->rowsCount() != 1) {
@@ -26,11 +27,11 @@ HERRCODE User::login(const std::wstring& email, const std::wstring& password)
 		}
 		while (res->next()) {
 			auto password_hash = res->getString("password_hash");
-			if (!Utils::ValidatePasswordHash(Utils::Utf16ToUtf8String(password), password_hash)) {
+			if (!Utils::ValidatePasswordHash(StringUtils::Utf16ToUtf8String(password), password_hash)) {
 				return H_AUTH_FAILED;
 			}
 			id_ = res->getInt("id");
-			username_ = Utils::Utf8ToUtf16String(res->getString("username"));
+			username_ = StringUtils::Utf8ToUtf16String(res->getString("username"));
 		}
 		statusStmt->setInt(1, kStatus_Online);
 		statusStmt->setString(2, utf8email);

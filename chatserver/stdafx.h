@@ -29,6 +29,8 @@
 #include <Ws2spi.h>
 #include <ws2tcpip.h>
 #include <MSWSock.h>
+#include <Shlobj.h>
+#include <Shlwapi.h>	
 
 #include <mysql_connection.h>
 #include <mysql_driver.h>
