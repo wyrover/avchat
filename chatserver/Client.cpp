@@ -25,3 +25,9 @@ std::wstring Client::getEmail() const
 {
 	return user_.email_;
 }
+
+void Client::logout()
+{
+	user_.logout();
+	closesocket(socket_);
+}

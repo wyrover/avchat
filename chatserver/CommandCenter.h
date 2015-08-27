@@ -24,8 +24,9 @@ public:
 
 private:
 	int handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int inLen);
-	void onCmdLogin(SOCKET socket, const std::wstring& email, const std::wstring& password);
-	void onCmdMessage(SOCKET socket, const std::wstring& sender, const std::wstring& recver, const std::wstring& message);
+	void onCmdLogin(SOCKET socket, SockStream& stream);
+	void onCmdLogout(SOCKET socket, SockStream& stream);
+	void onCmdMessage(SOCKET socket, SockStream& stream);
 	void onCmdFileCheck(SOCKET socket, int id, const std::vector<std::wstring>& hashList);
 	void onCmdFileUpload(SOCKET socket, SockStream& stream);
 	void onCmdFileDownload(SOCKET socket, SockStream& stream);

@@ -51,7 +51,7 @@ namespace base
 		int err = WSARecv(socket, &wsaBuf, 1, NULL, &flags, ol, NULL);
 		int errcode = WSAGetLastError();
 		if (err != 0) {
-			assert(errcode == WSA_IO_PENDING);
+			//assert(errcode == WSA_IO_PENDING);
 			return H_FAILED;
 		}
 		return H_OK;

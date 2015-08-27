@@ -1,4 +1,5 @@
 ﻿#include "Utils.h"
+#include <QFileDialog>
 
 Utils::Utils()
 {
@@ -28,4 +29,26 @@ std::wstring Utils::textEditToMessageText(QTextEdit* textEdit)
 	}
 	result += text.mid(textStart).toStdWString();
 	return result;
+}
+
+void Utils::addImageToTextEdit(const QString& fileName, QTextEdit* textEdit)
+{
+	if (!fileName.isNull()) {
+		QTextCursor c(textEdit->document());
+		c.movePosition(QTextCursor::End);
+
+		QImage image;
+		image.load(fileName);
+		QTextImageFormat imageFormat;
+		float maxImageWidth = textEdit->width() / 2.f;
+		if (image.width() < maxImageWidth) {
+			imageFormat.setWidth(image.width());
+			imageFormat.setHeight(image.height());
+		} else {
+			imageFormat.setWidth(maxImageWidth);
+			imageFormat.setHeight(maxImageWidth / image.width() * image.height());
+		}
+		imageFormat.setName(fileName);
+		c.insertImage(imageFormat);
+	}
 }

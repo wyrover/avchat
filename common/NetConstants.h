@@ -21,6 +21,7 @@ namespace net
 		kCommandType_FileUploadAck,
 		kCommandType_FileDownload,
 		kCommandType_FileDownloadAck,
+		kCommandType_Logout,
 
 		kCommandType_ImageMessage,
 		kCommandType_FileRequest,
@@ -31,6 +32,16 @@ namespace net
 		kPng,
 		kJpeg,
 		kGif,
+	};
+
+	enum LoginType {
+		kLoginType_Normal,
+		kLoginType_Auto
+	};
+
+	enum LoginAckType {
+		kLoginAck_Failed,
+		kLoginAck_Succeeded,
 	};
 
 }

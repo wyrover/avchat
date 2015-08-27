@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>qtchatclientClass</class>
- <widget class="QMainWindow" name="qtchatclientClass">
+ <widget class="QDialog" name="qtchatclientClass">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,35 +13,65 @@
   <property name="windowTitle">
    <string>qtchatclient</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(235,236,246,255), stop:1 rgba(219,222,233,255))</string>
-  </property>
-  <widget class="QWidget" name="centralWidget">
-   <property name="styleSheet">
-    <string notr="true"/>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <property name="spacing">
+    <number>0</number>
    </property>
-   <layout class="QHBoxLayout" name="horizontalLayout_3">
-    <property name="leftMargin">
-     <number>0</number>
-    </property>
-    <item>
-     <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="leftMargin">
+    <number>5</number>
+   </property>
+   <property name="topMargin">
+    <number>5</number>
+   </property>
+   <property name="rightMargin">
+    <number>5</number>
+   </property>
+   <property name="bottomMargin">
+    <number>5</number>
+   </property>
+   <item>
+    <widget class="QWidget" name="mainWidget" native="true">
+     <property name="styleSheet">
+      <string notr="true">background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(235,236,246,255), stop:1 rgba(219,222,233,255))</string>
+     </property>
+     <layout class="QVBoxLayout" name="mainLayout">
       <property name="spacing">
        <number>0</number>
       </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
       <item>
-       <widget class="TextViewer" name="textBrowser" native="true">
+       <widget class="TitleBar" name="titleBar" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>30</height>
+         </size>
+        </property>
         <property name="styleSheet">
-         <string notr="true"/>
+         <string notr="true">QPushButton { border: none; background: none; } QPushButton:hover { background: rgb(232, 17, 35); }</string>
         </property>
        </widget>
       </item>
       <item>
-       <widget class="QWidget" name="toolbar" native="true">
-        <property name="styleSheet">
-         <string notr="true">border-top:1px solid rgb(209,211,221);</string>
-        </property>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <widget class="QWidget" name="contentWidget" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
          <property name="spacing">
           <number>0</number>
          </property>
@@ -58,182 +88,247 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QPushButton" name="addPicBtn">
-           <property name="styleSheet">
-            <string notr="true">QPushButton {
-	background-color: transparent;
-	border:none;
-	margin-left: 5px;
-	margin-top: 2px;
-    padding: 3px;
-}
-QPushButton:hover {
-	border: 1px solid rgb(173,175,176);
-	border-radius: 2px;
-}
-</string>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
+          <widget class="QWidget" name="leftWidget" native="true">
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="TextViewer" name="textBrowser" native="true">
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="toolbar" native="true">
+              <property name="styleSheet">
+               <string notr="true">border-top:1px solid rgb(209,211,221);</string>
+              </property>
+              <layout class="QHBoxLayout" name="toolbarLayout">
+               <property name="spacing">
+                <number>0</number>
+               </property>
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QPushButton" name="addPicBtn">
+                 <property name="styleSheet">
+                  <string notr="true">
+                                        QPushButton {
+                                        background-color: transparent;
+                                        border:none;
+                                        margin-left: 5px;
+                                        margin-top: 2px;
+                                        padding: 3px;
+                                        }
+                                        QPushButton:hover {
+                                        border: 1px solid rgb(173,175,176);
+                                        border-radius: 2px;
+                                        }
+                                      </string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="flat">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="addVoiceBtn">
+                 <property name="styleSheet">
+                  <string notr="true">
+                                        QPushButton {
+                                        background-color: transparent;
+                                        border:none;
+                                        margin-left: 5px;
+                                        margin-top: 2px;
+                                        padding: 3px;
+                                        }
+                                        QPushButton:hover {
+                                        border: 1px solid rgb(173,175,176);
+                                        border-radius: 2px;
+                                        }
+                                      </string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="flat">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <widget class="QTextEdit" name="textEdit">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>100</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>100</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true"/>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::Panel</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Sunken</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout">
+              <property name="bottomMargin">
+               <number>8</number>
+              </property>
+              <item>
+               <spacer name="horizontalSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QPushButton" name="closeButton">
+                <property name="styleSheet">
+                 <string notr="true">
+                                      background: #4c70b1;
+                                      border-radius: 8;
+                                      border:1px solid #4c70b1;
+                                      color:white;
+                                      padding:5px 10px;
+                                      margin:0px 5px;
+                                    </string>
+                </property>
+                <property name="text">
+                 <string>&amp;Close</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton">
+                <property name="styleSheet">
+                 <string notr="true">
+                                      background: #4c70b1;
+                                      border-radius: 8;
+
+                                      border:1px solid #4c70b1;
+                                      color:white;
+                                      padding:5px 10px;
+                                      margin-right: 15px;
+                                      margin-left: 10px;
+                                    </string>
+                </property>
+                <property name="text">
+                 <string>&amp;Send</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="addVoiceBtn">
-           <property name="styleSheet">
-            <string notr="true">QPushButton {
-	background-color: transparent;
-	border:none;
-	margin-left: 5px;
-	margin-top: 2px;
-    padding: 3px;
-}
-QPushButton:hover {
-	border: 1px solid rgb(173,175,176);
-	border-radius: 2px;
-}</string>
-           </property>
-           <property name="text">
-            <string/>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
+          <widget class="QWidget" name="rightContent" native="true">
+           <layout class="QVBoxLayout" name="rightLayout">
+            <item>
+             <widget class="QListView" name="userListView">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>200</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>200</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
          </item>
         </layout>
        </widget>
       </item>
-      <item>
-       <widget class="QTextEdit" name="textEdit">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>100</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>100</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">
-                    </string>
-        </property>
-        <property name="frameShape">
-         <enum>QFrame::Panel</enum>
-        </property>
-        <property name="frameShadow">
-         <enum>QFrame::Sunken</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <property name="bottomMargin">
-         <number>8</number>
-        </property>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_2">
-          <property name="styleSheet">
-           <string notr="true">
-                        background: #4c70b1;
-                        border-radius: 8;
-                        border:1px solid #4c70b1;
-                        color:white;
-                        padding:5px 10px;
-                        margin:0px 5px;
-                      </string>
-          </property>
-          <property name="text">
-           <string>关闭(&amp;C)</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton">
-          <property name="styleSheet">
-           <string notr="true">
-                        background: #4c70b1;
-                        border-radius: 8;
-
-                        border:1px solid #4c70b1;
-                        color:white;
-                        padding:5px 10px;
-                        margin-right: 15px;
-                        margin-left: 10px;
-                      </string>
-          </property>
-          <property name="text">
-           <string>发送(&amp;S)</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
      </layout>
-    </item>
-    <item>
-     <widget class="QListView" name="userListView">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="minimumSize">
-       <size>
-        <width>200</width>
-        <height>0</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>200</width>
-        <height>16777215</height>
-       </size>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::NoFrame</enum>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
+    </widget>
+   </item>
+  </layout>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
+  <customwidget>
+   <class>TitleBar</class>
+   <extends>QWidget</extends>
+   <header>titlebar.h</header>
+  </customwidget>
   <customwidget>
    <class>TextViewer</class>
    <extends>QWidget</extends>

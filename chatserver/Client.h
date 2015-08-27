@@ -10,6 +10,7 @@ public:
 	SOCKET getSocket();
 	std::wstring getUsername() const;
 	std::wstring getEmail() const;
+	void logout();
 
 private:
 	User user_;

@@ -154,6 +154,17 @@ SockStream::~SockStream()
 		delete[] buff_;
 }
 
+void SockStream::clear()
+{
+	if (!read_) {
+		delete[] buff_;
+		buff_ = nullptr;
+		size_ = 0;
+		curr_ = 0;
+		capacity_ = 0;
+	}
+}
+
 char* SockStream::getCurrPtr()
 {
 	if (read_)
@@ -213,3 +224,5 @@ void SockStream::getBuffer(buffer& buf)
 	curr_ += bytes;
 	tmpBuf.swap(buf);
 }
+
+

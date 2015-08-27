@@ -6,6 +6,7 @@ public:
 	SockStream();
 	SockStream(char* buff, size_t len);
 	~SockStream();
+	void clear();
 	int writeInt(int value);
 	int writeInt64(int64_t value);
 	int writeString(const std::wstring& str);

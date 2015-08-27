@@ -2,6 +2,7 @@
 
 #include "../common/errcode.h"
 #include <string>
+
 class User
 {
 	friend class Client;
@@ -13,18 +14,20 @@ public:
 	};
 	User();
 	~User();
-	HERRCODE login(const std::wstring& email, const std::wstring& password);
+	HERRCODE login(int authType, const std::wstring& email, const std::wstring& password);
+	HERRCODE logout();
+
 	int requestAddFriend(int userId);
 	int requestAddGroup(int groupId);
 	int removeFriend(int userId);
 	int quitGroup(int groupId);
-	int logOff();
 	int getStatus();
+	std::wstring getAuthKey();
 
 protected:
 	int id_;
 	std::wstring email_;
 	std::wstring username_;
-	//std::wstring accessToken_;
+	std::wstring authKey_;
 	int status_;
 };

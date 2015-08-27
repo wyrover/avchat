@@ -14,10 +14,12 @@
 #define LOG_LOGIN 1
 #define LOG_IOCP 0
 const static int kCompKey = 233;
+const static int kTimerKey = 234;
 const static int kPort = 2333;
 const static int kMaxAcceptRequest = 1000;
 
 ChatClient::ChatClient()
+	: msgMan_(this)
 {
 	quit_ = false;
 }
@@ -59,42 +61,14 @@ HERRCODE ChatClient::initWinsock()
 	return H_OK;
 }
 
+HERRCODE ChatClient::autoLogin(const std::wstring& username, const std::wstring& token)
+{
+	return loginImpl(net::kLoginType_Auto, username, token);
+}
+
 HERRCODE ChatClient::login(const std::wstring& username, const std::wstring& password)
 {
-	SockStream stream;
-	stream.writeInt(net::kCommandType_Login);
-	stream.writeInt(0);
-	stream.writeString(username);
-	stream.writeString(password);
-	stream.flushSize();
-	auto ret = ::send(sock_, stream.getBuf(), stream.getSize(), 0);
-	if (ret == SOCKET_ERROR) {
-		return H_NETWORK_ERROR;
-	}
-	buffer buf(100);
-	int retLen = ::recv(sock_, buf.data(), buf.size(), 0);
-	if (retLen) {
-		SockStream ss(buf.data(), retLen);
-		assert(net::kCommandType_LoginAck == ss.getInt());
-		auto size = ss.getInt();
-		auto ack = ss.getInt();
-		if (ack) {
-			hComp_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
-			if (hComp_ == NULL) {
-				return H_FAILED;
-			}
-			HANDLE hComp2 = CreateIoCompletionPort((HANDLE)sock_, hComp_, kCompKey, 0);
-			if (hComp2 != hComp_)
-				return H_FAILED;
-			username_ = username;
-
-			return H_OK;
-		} else {
-			return H_AUTH_FAILED;
-		}
-	} else {
-		return H_NETWORK_ERROR;
-	}
+	return loginImpl(net::kLoginType_Normal, username, password);
 }
 
 HERRCODE ChatClient::sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp)
@@ -103,12 +77,13 @@ HERRCODE ChatClient::sendMessage(const std::wstring& username, const std::wstrin
 		SockStream stream;
 		stream.writeInt(net::kCommandType_Message);
 		stream.writeInt(0);
-		stream.writeString(username_);
+		stream.writeString(email_);
 		stream.writeString(username);
 		stream.writeInt64(timestamp);
 		stream.writeString(message);
 		stream.flushSize();
 		queueSendRequest(sock_, stream);
+		msgMan_.addMessageRequest(timestamp);
 	} else {
 		ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_SendMessage);
 		ImageMessageForSend* msg = new ImageMessageForSend;
@@ -116,6 +91,21 @@ HERRCODE ChatClient::sendMessage(const std::wstring& username, const std::wstrin
 		ol->setProp((int)msg);
 		PostQueuedCompletionStatus(hComp_, 0, kCompKey, ol);
 	}
+	return H_OK;
+}
+
+HERRCODE ChatClient::logout()
+{
+	SockStream stream;
+	stream.writeInt(net::kCommandType_Logout);
+	stream.writeInt(0);
+	stream.writeString(email_);
+	stream.flushSize();
+	auto ret = ::send(sock_, stream.getBuf(), stream.getSize(), 0);
+	if (ret == SOCKET_ERROR) {
+		return H_NETWORK_ERROR;
+	}
+	quit(true);
 	return H_OK;
 }
 
@@ -140,15 +130,19 @@ bool ChatClient::queueCompletionStatus()
 		TRACE_IF(LOG_IOCP, "no queued completion status\n");
 		return false;
 	}
-	int type = ol->getNetType();
-	TRACE_IF(LOG_IOCP, "get queued completion status type = %d\n", type);
-	if (type == net::kAction_Recv) {
-		TRACE("recved bytes count %d\n", bytes);
-		onRecv(ol, bytes, key);
-	} else if (type == net::kAction_Send) {
+	if (key == kTimerKey) {
+		msgMan_.checkMesage();
+	} else if (key == kCompKey) {
+		int type = ol->getNetType();
+		TRACE_IF(LOG_IOCP, "get queued completion status type = %d\n", type);
+		if (type == net::kAction_Recv) {
+			TRACE("recved bytes count %d\n", bytes);
+			onRecv(ol, bytes, key);
+		} else if (type == net::kAction_Send) {
 
-	} else if (type == net::kAction_SendMessage) {
-		cmdCenter_.sendImageMessage(sock_, (ImageMessageForSend*)(ol->getProp()));
+		} else if (type == net::kAction_SendMessage) {
+			cmdCenter_.sendImageMessage(sock_, (ImageMessageForSend*)(ol->getProp()));
+		}
 	}
 	return true;
 }
@@ -167,10 +161,9 @@ void ChatClient::setController(IChatClientController* controller)
 void ChatClient::quit(bool wait)
 {
 	quit_ = true;
-	if (wait) {
-		for (auto& thread : threads_){
-			thread.join();
-		}
+	msgMan_.quit();
+	for (auto& thread : threads_){
+		thread.join();
 	}
 }
 
@@ -179,9 +172,9 @@ std::vector<std::wstring> ChatClient::getUserList()
 	return cmdCenter_.getUserList();
 }
 
-std::wstring ChatClient::getUsername()
+std::wstring ChatClient::getEmail()
 {
-	return username_;
+	return email_;
 }
 
 void ChatClient::queueSendRequest(SOCKET socket, SockStream& stream)
@@ -203,11 +196,12 @@ void ChatClient::start()
 	for (int i = 0; i < threadCount; ++i){
 		threads_.push_back(std::thread(&ChatClient::threadFun, this, i == 0));
 	}
+	threads_.push_back(std::thread(&MessageManager::threadFun, msgMan_));
 }
 
 void ChatClient::setImageCacheDir(const std::wstring& filePath)
 {
-	imageCache_ = filePath + username_ + L"\\";
+	imageCache_ = filePath + email_ + L"\\";
 	FileUtils::MkDirs(imageCache_);
 }
 
@@ -215,3 +209,58 @@ std::wstring ChatClient::getImageDir()
 {
 	return imageCache_;
 }
+
+HERRCODE ChatClient::loginImpl(int type, const std::wstring& username, const std::wstring& credential)
+{
+	SockStream stream;
+	stream.writeInt(net::kCommandType_Login);
+	stream.writeInt(0);
+	stream.writeInt(type);
+	stream.writeString(username);
+	stream.writeString(credential);
+	stream.flushSize();
+	auto ret = ::send(sock_, stream.getBuf(), stream.getSize(), 0);
+	if (ret == SOCKET_ERROR) {
+		return H_NETWORK_ERROR;
+	}
+	buffer buf(200);
+	int retLen = ::recv(sock_, buf.data(), buf.size(), 0);
+	if (retLen) {
+		SockStream ss(buf.data(), retLen);
+		assert(net::kCommandType_LoginAck == ss.getInt());
+		auto size = ss.getInt();
+		auto ack = ss.getInt();
+		if (ack == net::kLoginAck_Succeeded) {
+			hComp_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+			if (hComp_ == NULL) {
+				return H_FAILED;
+			}
+			HANDLE hComp2 = CreateIoCompletionPort((HANDLE)sock_, hComp_, kCompKey, 0);
+			if (hComp2 != hComp_)
+				return H_FAILED;
+			email_ = username;
+			authKey_ = ss.getString();
+			return H_OK;
+		} else {
+			return H_AUTH_FAILED;
+		}
+	} else {
+		return H_NETWORK_ERROR;
+	}
+}
+
+MessageManager& ChatClient::messageMan()
+{
+	return msgMan_;
+}
+
+IChatClientController* ChatClient::controller()
+{
+	return controller_;
+}
+
+void ChatClient::queueCheckTimeoutTask()
+{
+	PostQueuedCompletionStatus(hComp_, 0, kTimerKey, NULL);
+}
+

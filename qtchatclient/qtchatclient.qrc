@@ -6,5 +6,11 @@
       <file>Resources/scrollbar.qss</file>
       <file>Resources/image.png</file>
       <file>Resources/voice.png</file>
+      <file>Resources/chat.ico</file>
+      <file>Resources/logindialog.png</file>
+      <file>Resources/close.png</file>
+      <file>Resources/min.png</file>
+      <file>Resources/file.png</file>
+      <file>Resources/error.png</file>
     </qresource>
 </RCC>

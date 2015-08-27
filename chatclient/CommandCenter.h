@@ -35,6 +35,7 @@ public:
 private:
 	int handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int inLen);
 	void onCmdMessage(SOCKET socket, const std::wstring& sender, const std::wstring& recver, time_t timestamp, const std::wstring& message);
+	void onCmdMessageAck(SOCKET socket, SockStream& stream);
 	void onCmdUserList(SOCKET socket, const std::vector<std::wstring>& userList );
 	void onCmdFileCheckAck(SOCKET socket, ImageMessageForSend* msg, const std::vector<std::wstring>& urlList);
 	void onCmdFileUploadAck(SOCKET socket, ImageMessageForSend* msg, const std::vector<std::wstring>& urlList);

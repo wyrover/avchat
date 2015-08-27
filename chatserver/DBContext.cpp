@@ -45,7 +45,7 @@ HERRCODE DBContext::createPreparedStatement()
 		return H_SERVER_DB_ERROR;
 	}
 	try {
-		loginStmt_.reset(dbConn_->prepareStatement("SELECT id,email,username,password_hash FROM User WHERE email=?"));
+		loginStmt_.reset(dbConn_->prepareStatement("SELECT id,email,username,password_hash,auth_key FROM User WHERE email=?"));
 		if (!loginStmt_) {
 			return H_SERVER_DB_ERROR;
 		}

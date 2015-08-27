@@ -10,6 +10,7 @@
 #include "ImageMessageForSend.h"
 #include "ImageMessageForRecv.h"
 #include "chatclient.h"
+#include "MessageManager.h"
 
 using client::Utils;
 
@@ -114,6 +115,11 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 		case net::kCommandType_FileDownloadAck:
 		{
 			onCmdFileDownloadAck(socket, stream);
+			break;
+		}
+		case net::kCommandType_MessageAck:
+		{
+			onCmdMessageAck(socket, stream);
 			break;
 		}
 		default:
@@ -235,12 +241,13 @@ void CommandCenter::onCmdFileUploadAck(SOCKET socket, ImageMessageForSend* msg,
 	SockStream stream;
 	stream.writeInt(net::kCommandType_Message);
 	stream.writeInt(0);
-	stream.writeString(client_->getUsername());
+	stream.writeString(client_->getEmail());
 	stream.writeString(msg->getRecver());
 	stream.writeInt64(msg->getTimeStamp());
 	stream.writeString(message);
 	stream.flushSize();
 	queueSendRequest(socket, stream);
+	client_->messageMan().addMessageRequest(msg->getTimeStamp());
 }
 
 void CommandCenter::onCmdFileDownloadAck(SOCKET socket, SockStream& stream)
@@ -252,4 +259,11 @@ void CommandCenter::onCmdFileDownloadAck(SOCKET socket, SockStream& stream)
 		controller_->onNewMessage(msg->getSender(), msg->getRecver(), msg->getTimeStamp(), msg->getRawMessage());
 	}
 	delete msg;
+}
+
+void CommandCenter::onCmdMessageAck(SOCKET socket, SockStream& stream)
+{
+	auto size = stream.getInt();
+	auto id = stream.getInt64();
+	client_->messageMan().confirmMessageRequest(id);
 }

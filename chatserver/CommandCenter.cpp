@@ -73,20 +73,13 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 	switch (type) {
 		case net::kCommandType_Login:
 		{
-			stream.getInt();
-			auto username = stream.getString();
-			auto password = stream.getString();
-			onCmdLogin(socket, username, password);
+			onCmdLogin(socket, stream);
 			break;
 		}
 		case net::kCommandType_Message:
 		{
-			auto size = stream.getInt();
-			auto sender = stream.getString();
-			auto recver = stream.getString();
-			auto timestamp = stream.getInt64();
-			auto message = stream.getString(); 
-			onCmdMessage(socket, sender, recver, message);
+
+			onCmdMessage(socket, stream);
 			break;
 		}
 		case net::kCommandType_FileExists:
@@ -107,22 +100,32 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 			onCmdFileDownload(socket, stream);
 			break;
 		}
+		case net::kCommandType_Logout:
+		{
+			onCmdLogout(socket, stream);
+			break;
+		}
 		default:
 			break;
 	}
 	return 0;
 }
 
-void CommandCenter::onCmdLogin(SOCKET socket, const std::wstring& email, const std::wstring& password)
+void CommandCenter::onCmdLogin(SOCKET socket, SockStream& stream)
 {
+	stream.getInt();
+	auto authType = stream.getInt();
+	auto email = stream.getString();
+	auto password = stream.getString();
 	User user;
-	if (user.login(email, password) == H_OK) {
+	if (user.login(authType, email, password) == H_OK) {
 		auto client = new Client(user, socket);
 		clientMan_.addClient(email, client);
 		SockStream stream;
 		stream.writeInt(net::kCommandType_LoginAck);
 		stream.writeInt(0);
-		stream.writeInt(1);
+		stream.writeInt(net::kLoginAck_Succeeded);
+		stream.writeString(user.getAuthKey());
 		stream.flushSize();
 		queueSendRequest(socket, stream);
 		updateUserlist();
@@ -130,21 +133,41 @@ void CommandCenter::onCmdLogin(SOCKET socket, const std::wstring& email, const s
 		SockStream stream;
 		stream.writeInt(net::kCommandType_LoginAck);
 		stream.writeInt(0);
-		stream.writeInt(1);
+		stream.writeInt(net::kLoginAck_Failed);
 		stream.flushSize();
 		queueSendRequest(socket, stream);
 	}
 }
 
-void CommandCenter::onCmdMessage(SOCKET socket, const std::wstring& sender, const std::wstring& recver,
-	const std::wstring& message)
+void CommandCenter::onCmdLogout(SOCKET socket, SockStream& stream)
 {
+	auto size = stream.getInt();
+	auto email = stream.getString();
+	clientMan_.removeClient(email);
+	updateUserlist();
+}
+
+void CommandCenter::onCmdMessage(SOCKET socket, SockStream& inStream)
+{
+	auto size = inStream.getInt();
+	auto sender = inStream.getString();
+	auto recver = inStream.getString();
+	auto timestamp = inStream.getInt64();
+	auto message = inStream.getString();
+
 	SockStream stream;
+	stream.writeInt(net::kCommandType_MessageAck);
+	stream.writeInt(0);
+	stream.writeInt64(timestamp);
+	stream.flushSize();
+	queueSendRequest(socket, stream);
+	stream.clear();
+
 	stream.writeInt(net::kCommandType_Message);
 	stream.writeInt(0);
 	stream.writeString(sender);
 	stream.writeString(recver);
-	stream.writeInt64(time(NULL));
+	stream.writeInt64(timestamp);
 	stream.writeString(message);
 	stream.flushSize();
 	//TRACE(L"%s send %s to %s\n", sender.c_str(), recver.c_str(), message.c_str());
@@ -273,3 +296,5 @@ void CommandCenter::onCmdFileDownload(SOCKET socket, SockStream& stream)
 	outStream.flushSize();
 	queueSendRequest(socket, outStream);
 }
+
+

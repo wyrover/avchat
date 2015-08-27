@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "ServerContext.h"
 #include "user.h"
+#include "../common/NetConstants.h"
 
 namespace {
 	
@@ -30,5 +31,5 @@ void SimpleTest::testDB()
 {
 	ServerContext::getInstance()->init();
 	User user;
-	assert(user.login(L"如果@gmail.com", L"keke"));
+	assert(user.login(net::kLoginType_Normal, L"如果@gmail.com", L"keke"));
 }

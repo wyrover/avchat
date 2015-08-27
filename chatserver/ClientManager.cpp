@@ -22,6 +22,7 @@ HERRCODE ClientManager::addClient(const std::wstring& email, Client* client)
 HERRCODE ClientManager::removeClient(const std::wstring& email)
 {
 	std::lock_guard<std::recursive_mutex> lock(fMutex);
+	auto client = fClientMap[email];
 	fClientMap.erase(email);
 	return H_OK;
 }
