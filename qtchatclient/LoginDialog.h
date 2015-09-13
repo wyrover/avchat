@@ -4,13 +4,16 @@
 #include <QMouseEvent>
 #include "ui_logindialog.h"
 #include "dropshadowwidget.h"
-class ChatClient;
+namespace avc
+{
+	class ChatClient;
+}
 
 class LoginDialog : public DropShadowWidget, public Ui::LoginDialog
 {
 	Q_OBJECT
 public:
-	LoginDialog(ChatClient* client);
+	LoginDialog(avc::ChatClient* client);
 	~LoginDialog();
 
 protected:
@@ -20,5 +23,5 @@ protected:
 	void openRegisterUrl();
 private:
 	void setError(const QString& str);
-	ChatClient* client_;
+	avc::ChatClient* client_;
 };

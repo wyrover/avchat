@@ -20,6 +20,11 @@ SockStream::SockStream(char* buff, size_t len)
 	read_ = true;
 }
 
+int SockStream::writeShort(short value)
+{
+	return write((char*)&value, 2);
+}
+
 int SockStream::writeInt(int value)
 {
 	return write((char*)&value, 4);
@@ -61,8 +66,18 @@ int SockStream::writeBoolVec(const std::vector<bool>& boolVec)
 	return bytes;
 }
 
+short SockStream::getShort()
+{
+	char* ptr = buff_ + curr_;
+	short value = *(short*)ptr;
+	curr_ += 2;
+	return value;
+}
+
 int SockStream::getInt()
 {
+	if (curr_ + 4 > size_)
+		throw std::out_of_range("read error");
 	char* ptr = buff_ + curr_;
 	int value = *(int*)ptr;
 	curr_ += 4;
@@ -71,25 +86,28 @@ int SockStream::getInt()
 
 int64_t SockStream::getInt64()
 {
+	if (curr_ + 8 > size_)
+		throw std::out_of_range("read error");
 	char* ptr = buff_ + curr_;
 	int64_t value = *(int64_t*)ptr;
 	curr_ += 8;
 	return value;
 }
 
-
-
-
 std::wstring SockStream::getString()
 {
 	int len = getInt();
+	if (curr_ + len > size_)
+		throw std::out_of_range("read error");
 	std::wstring result((wchar_t*)(buff_ + curr_), len);
 	curr_ += len * sizeof(wchar_t);
 	return result;
 }
 
 double SockStream::getDouble()
-{	
+{
+	if (curr_ + sizeof(double) > size_)
+		throw std::out_of_range("read error");
 	char* ptr = buff_ + curr_;
 	double value = *(double*)ptr;
 	curr_ += sizeof(double);
@@ -98,6 +116,8 @@ double SockStream::getDouble()
 
 float SockStream::getFloat()
 {
+	if (curr_ + sizeof(float) > size_)
+		throw std::out_of_range("read error");
 	char* ptr = buff_ + curr_;
 	float value = *(float*)ptr;
 	curr_ += sizeof(float);
@@ -106,6 +126,8 @@ float SockStream::getFloat()
 
 bool SockStream::getBool()
 {
+	if (curr_ + sizeof(char) > size_)
+		throw std::out_of_range("read error");
 	char* ptr = buff_ + curr_;
 	bool value = !!*ptr;
 	curr_ += sizeof(char);
@@ -224,5 +246,4 @@ void SockStream::getBuffer(buffer& buf)
 	curr_ += bytes;
 	tmpBuf.swap(buf);
 }
-
 

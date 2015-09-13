@@ -10,6 +10,9 @@ public:
 	ChatOverlappedData(int type);
 	~ChatOverlappedData();
 	buffer& getBuf();
+	sockaddr_in* getAddr();
+	int *getAddrLen();
+	int *getBytesSent();
 	
 	void setSocket(SOCKET acceptSock);
 	SOCKET getSocket();
@@ -23,4 +26,7 @@ private:
 	buffer recvBuf_;
 	SOCKET sock_;
 	int prop_;
+	sockaddr_in  addr_;
+	int addrLen_;
+	int bytesSent_;
 };

@@ -24,8 +24,12 @@ namespace net
 		kCommandType_Logout,
 
 		kCommandType_ImageMessage,
-		kCommandType_FileRequest,
-		kCommandType_FileRequestAck,
+		kCommandType_FileTransferRequest,
+		kCommandType_FileTransferRequestAck,
+		kCommandType_BuildPath,
+		kCommandType_BuildPathAck,
+		kCommandType_PeerSync,
+		kCommandType_PeerSyncAck,
 	};
 
 	enum FileType {
@@ -43,5 +47,10 @@ namespace net
 		kLoginAck_Failed,
 		kLoginAck_Succeeded,
 	};
-
+	enum BuildPathAckType {
+		kP2pAck_ConnTcp, 
+		kP2pAck_ListenTcp,
+		kP2pAck_TcpHole,
+		kP2pAck_UdpHole,
+	};
 }

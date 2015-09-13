@@ -3,12 +3,27 @@
 #include "../common/NetConstants.h"
 #include "../common/ChatOverlappedData.h"
 #include "../common/trace.h"
+#include "../common/Utils.h"
 #include "CommandCenter.h"
 #include "User.h"
 #include "Client.h"
+#include "ChatServer.h"
 
-CommandCenter::CommandCenter()
+namespace {
+	int getSockCompleteKey(SOCKET sock) {
+		int type;
+		int length = sizeof(int);
+		getsockopt(sock, SOL_SOCKET, SO_TYPE, (char*)&type, &length);
+		if (type == SOCK_STREAM)
+			return ChatServer::kTcpCompKey;
+		else
+			return ChatServer::kUdpCompKey;
+	}
+}
+
+CommandCenter::CommandCenter(ChatServer* server)
 {
+	server_ = server;
 }
 
 CommandCenter::~CommandCenter()
@@ -71,6 +86,26 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 	SockStream stream(buf, len);
 	int type = stream.getInt();
 	switch (type) {
+		case net::kCommandType_BuildPathAck:
+		{
+			onCmdBuildP2pPathAck(socket, stream);
+			break;
+		}
+		case net::kCommandType_BuildPath:
+		{
+			onCmdBuildP2pPath(socket, stream);
+			break;
+		}
+		case net::kCommandType_FileTransferRequestAck:
+		{
+			onCmdFileTransferRequestAck(socket, stream);
+			break;
+		}
+		case net::kCommandType_FileTransferRequest:
+		{
+			onCmdFileTransferRequest(socket, stream);
+			break;
+		}
 		case net::kCommandType_Login:
 		{
 			onCmdLogin(socket, stream);
@@ -147,42 +182,56 @@ void CommandCenter::onCmdLogout(SOCKET socket, SockStream& stream)
 	updateUserlist();
 }
 
-void CommandCenter::onCmdMessage(SOCKET socket, SockStream& inStream)
+HERRCODE CommandCenter::onCmdMessage(SOCKET socket, SockStream& is)
 {
-	auto size = inStream.getInt();
-	auto sender = inStream.getString();
-	auto recver = inStream.getString();
-	auto timestamp = inStream.getInt64();
-	auto message = inStream.getString();
+	int size;
+	std::wstring recver;
+	std::wstring sender;
+	int64_t timestamp;
+	std::wstring message;
+	try {
+		size = is.getInt();
+		if (size != is.getSize())
+			return H_INVALID_PACKAGE;
+		sender = is.getString();
+		recver = is.getString();
+		timestamp = is.getInt64();
+		message = is.getString();
+	} catch (std::out_of_range& e) {
+		return H_INVALID_PACKAGE;
+	}
 
-	SockStream stream;
-	stream.writeInt(net::kCommandType_MessageAck);
-	stream.writeInt(0);
-	stream.writeInt64(timestamp);
-	stream.flushSize();
-	queueSendRequest(socket, stream);
-	stream.clear();
-
-	stream.writeInt(net::kCommandType_Message);
-	stream.writeInt(0);
-	stream.writeString(sender);
-	stream.writeString(recver);
-	stream.writeInt64(timestamp);
-	stream.writeString(message);
-	stream.flushSize();
+	SockStream os;
+	os.writeInt(net::kCommandType_Message);
+	os.writeInt(0);
+	os.writeString(sender);
+	os.writeString(recver);
+	os.writeInt64(timestamp);
+	os.writeString(message);
+	os.flushSize();
 	//TRACE(L"%s send %s to %s\n", sender.c_str(), recver.c_str(), message.c_str());
 	if (recver == L"all") {
 		std::lock_guard<std::recursive_mutex> lock(clientMan_.fMutex);
 		for (auto& item : clientMan_.fClientMap) {
-			queueSendRequest(item.second->getSocket(), stream);
+			queueSendRequest(item.second->getSocket(), os);
+		}
+		{
+			SockStream os;
+			os.writeInt(net::kCommandType_MessageAck);
+			os.writeInt(0); //dummy size
+			os.writeInt64(timestamp);
+			os.writeString(recver);
+			os.flushSize();
+			queueSendRequest(socket, os);
 		}
 	} else {
 		SOCKET s;
 		auto hr = clientMan_.getClientSocket(recver, &s);
-		if (hr == H_OK) {
-			queueSendRequest(socket, stream);
-		}
+		if (hr != H_OK)
+			return hr;
+		queueSendRequest(s, os);
 	}
+	return H_OK;
 }
 
 void CommandCenter::onCmdFileCheck(SOCKET socket, int id, const std::vector<std::wstring>& hashList)
@@ -208,16 +257,7 @@ void CommandCenter::onCmdFileCheck(SOCKET socket, int id, const std::vector<std:
 
 void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
 {
-	WSABUF wsaBuf;
-	wsaBuf.buf = stream.getBuf();
-	wsaBuf.len = stream.getSize();
-	TRACE("send to client bytes %d\n", stream.getSize());
-	ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_Send);
-	int ret = WSASend(socket, &wsaBuf, 1, NULL, 0, ol, NULL);
-	int errcode = WSAGetLastError();
-	if (ret != 0) {
-		assert(errcode == WSA_IO_PENDING);
-	} 
+	base::Utils::QueueSendRequest(socket, stream, server_->getCompletePortHandle(), getSockCompleteKey(socket));
 }
 
 void CommandCenter::updateUserlist()
@@ -239,19 +279,7 @@ void CommandCenter::updateUserlist()
 
 void CommandCenter::queueRecvCmdRequest(SOCKET socket)
 {
-	auto ol = new ChatOverlappedData(net::kAction_Recv);
-	ol->setSocket(socket);
-	buffer& buf = ol->getBuf();
-	WSABUF wsaBuf;
-	wsaBuf.buf = buf.data();
-	wsaBuf.len = buf.size();
-	DWORD flags = 0;
-	int err = WSARecv(socket, &wsaBuf, 1, NULL, &flags, ol, NULL);
-	int errcode = WSAGetLastError();
-	if (err != 0) {
-		//TRACE_IF(LOG_IOCP, "wsarecv error %d\n", errcode);
-		assert(errcode == WSA_IO_PENDING);
-	}
+	base::Utils::QueueRecvCmdRequest(socket, server_->getCompletePortHandle(), getSockCompleteKey(socket));
 }
 
 void CommandCenter::onCmdFileUpload(SOCKET socket, SockStream& inStream)
@@ -297,4 +325,136 @@ void CommandCenter::onCmdFileDownload(SOCKET socket, SockStream& stream)
 	queueSendRequest(socket, outStream);
 }
 
+void CommandCenter::onCmdFileTransferRequest(SOCKET socket, SockStream& stream)
+{
+	auto size = stream.getInt();
+	auto recver = stream.getString();
+	auto filename = stream.getString();
+	auto filesize = stream.getInt();
+	auto timestamp = stream.getInt64();
+	std::wstring sender;
+	auto hr = clientMan_.getEmailBySocket(socket, &sender);
+	if (hr != H_OK)
+		return;
 
+	SockStream s;
+	s.writeInt(net::kCommandType_FileTransferRequest);
+	s.writeInt(0);
+	s.writeString(sender);
+	s.writeString(filename);
+	s.writeInt(filesize);
+	s.writeInt64(timestamp);
+	s.flushSize();
+	SOCKET clientSock;
+	hr = clientMan_.getClientSocket(recver, &clientSock);
+	if (hr != H_OK)
+		return;
+	queueSendRequest(clientSock, s);
+}
+
+void CommandCenter::onCmdFileTransferRequestAck(SOCKET socket, SockStream& stream)
+{
+	auto size = stream.getInt();
+	auto recver = stream.getString();
+	auto timestamp = stream.getInt64();
+	auto isRecv = stream.getBool();
+	std::wstring sender;
+	auto hr = clientMan_.getEmailBySocket(socket, &sender);
+	if (hr != H_OK)
+		return;
+
+	SockStream s;
+	s.writeInt(net::kCommandType_FileTransferRequestAck);
+	s.writeInt(0);
+	s.writeString(sender);
+	s.writeInt64(timestamp);
+	if (!isRecv) {
+		s.writeBool(false);
+	} else {
+		s.writeBool(true);
+	}
+	s.flushSize();
+	SOCKET clientSock;
+	hr = clientMan_.getClientSocket(recver, &clientSock);
+	if (hr != H_OK)
+		return;
+	queueSendRequest(clientSock, s);
+}
+
+void CommandCenter::onCmdBuildP2pPath(SOCKET socket, SockStream& is)
+{
+	auto size = is.getInt();
+	auto id = is.getInt64();
+	auto recver = is.getString();
+	auto localIp = is.getInt();
+	auto tcpPort = is.getShort();
+	sockaddr_in publicIp;
+	int nameLen = sizeof(sockaddr_in);
+	if (getpeername(socket, (sockaddr*)&publicIp, &nameLen)) {
+		//error handle
+		return;
+	}
+
+	std::wstring sender;
+	auto hr = clientMan_.getEmailBySocket(socket, &sender);
+	if (hr != H_OK)
+		return;
+
+	SOCKET recvSock;
+	hr = clientMan_.getClientSocket(recver, &recvSock);
+	if (hr != H_OK)
+		return;
+
+	sockaddr_in recvPubIp;
+	nameLen = sizeof(sockaddr_in);
+	if (getpeername(recvSock, (sockaddr*)&recvPubIp, &nameLen)) {
+		//error handle
+		return;
+	}
+
+	SockStream os;
+	os.writeInt(net::kCommandType_BuildPath);
+	os.writeInt(0);
+	os.writeInt64(id);
+	os.writeString(sender);
+	os.writeInt(localIp);
+	os.writeInt(publicIp.sin_addr.S_un.S_addr);
+	os.writeShort(tcpPort);
+	os.writeInt(recvPubIp.sin_addr.S_un.S_addr);
+	os.flushSize();
+	queueSendRequest(recvSock, os);
+}
+
+HERRCODE CommandCenter::onCmdBuildP2pPathAck(SOCKET socket, SockStream& is)
+{
+	int size;
+	int64_t id;
+	std::wstring sender;
+	std::wstring recver;
+	int type;
+	try {
+		size = is.getInt();
+		if (size != is.getSize())
+			return H_NETWORK_ERROR;
+		id = is.getInt64();
+		sender = is.getString();
+		recver = is.getString();
+		type = is.getInt();
+	} catch (...) {
+		return H_NETWORK_ERROR;
+	}
+	
+	if (type == net::kP2pAck_ListenTcp) { // sender listen tcp
+		SOCKET recvSock;
+		auto hr = clientMan_.getClientSocket(recver, &recvSock);
+		if (hr != H_OK)
+			return H_NETWORK_ERROR;
+		base::Utils::QueueSendRequest(recvSock, is, server_->getCompletePortHandle(), ChatServer::kTcpCompKey);
+		return H_OK;
+	} else if (type == net::kP2pAck_TcpHole) {
+		return H_OK;
+	} else if (type == net::kP2pAck_UdpHole) {
+		return H_OK;
+	}
+	return H_FAILED;
+}

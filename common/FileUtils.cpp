@@ -1,5 +1,5 @@
 #include "stdafx.h"
-
+#include <strsafe.h>
 #include "FileUtils.h"
 
 #define LOG_XML 0
@@ -482,4 +482,18 @@ std::wstring FileUtils::getFileExt(const std::wstring& filePath)
 void FileUtils::MkDirs(const std::wstring& dirPath)
 {
 	SHCreateDirectoryEx(NULL, dirPath.c_str(), NULL);
+}
+
+std::wstring FileUtils::FileSizeToReadable(int fileSize)
+{
+	wchar_t buf[20];
+	double size = fileSize;
+	int i = 0;
+	const wchar_t* units[] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB", L"ZB", L"YB" };
+	while (size > 1024) {
+		size /= 1024;
+		i++;
+	}
+	StringCchPrintf(buf, 20, L"%.*f %s", i, size, units[i]);
+	return buf;
 }

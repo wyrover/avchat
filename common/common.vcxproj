@@ -95,8 +95,6 @@
     <ClInclude Include="errcode.h" />
     <ClInclude Include="FileExistsCommand.h" />
     <ClInclude Include="FileExistsAckCommand.h" />
-    <ClInclude Include="FileRequestAckCommand.h" />
-    <ClInclude Include="FileRequestCommand.h" />
     <ClInclude Include="FileUtils.h" />
     <ClInclude Include="LoginCommand.h" />
     <ClInclude Include="MessageCommand.h" />
@@ -106,6 +104,7 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="trace.h" />
     <ClInclude Include="UserListCommand.h" />
+    <ClInclude Include="WSAStarter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChatCommand.cpp" />
@@ -115,8 +114,6 @@
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="FileExistsCommand.cpp" />
     <ClCompile Include="FileExistsAckCommand.cpp" />
-    <ClCompile Include="FileRequestAckCommand.cpp" />
-    <ClCompile Include="FileRequestCommand.cpp" />
     <ClCompile Include="FileUtils.cpp" />
     <ClCompile Include="LoginCommand.cpp" />
     <ClCompile Include="MessageCommand.cpp" />
@@ -127,6 +124,7 @@
     </ClCompile>
     <ClCompile Include="Trace.cpp" />
     <ClCompile Include="UserListCommand.cpp" />
+    <ClCompile Include="WSAStarter.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

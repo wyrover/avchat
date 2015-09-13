@@ -17,10 +17,10 @@ DBContext::~DBContext()
 // FIXME: ini read write
 HERRCODE DBContext::init()
 {
-	std::string url = "tcp://127.0.0.1:3307";
+	std::string url = "tcp://127.0.0.1:3306";
 	std::string user = "root";
-	std::string pass = "2264seen";
-	std::string dbName = "chat";
+	std::string pass = "";
+	std::string dbName = "avchat";
 	try {
 		sql::Driver * driver = sql::mysql::get_driver_instance();
 		auto conn = driver->connect(url, user, pass);

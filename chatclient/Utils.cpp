@@ -66,7 +66,7 @@ namespace {
 }
 
 
-namespace client
+namespace avc
 {
 	Utils::Utils()
 	{

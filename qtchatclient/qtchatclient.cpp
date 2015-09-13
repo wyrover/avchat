@@ -13,8 +13,10 @@
 #include "OneToOneRoom.h"
 #include "CustomShadowEffect.h"
 #include "Utils.h"
+#include "../chatclient/chaterror.h"
+#include "../chatclient/MessageError.h"
 
-qtchatclient::qtchatclient(ChatClient* client, QWidget *parent)
+qtchatclient::qtchatclient(avc::ChatClient* client, QWidget *parent)
 	: DropShadowWidget(parent), client_(client)
 {
 	setupUi(this);
@@ -47,8 +49,10 @@ qtchatclient::qtchatclient(ChatClient* client, QWidget *parent)
 		this, SLOT(onUsernameDoubleClicked(const QModelIndex&)));
 	connect(this, SIGNAL(uiNewMessage(const QString&, const QString&, qint64, const QString&)),
 		this, SLOT(onUiNewMessage(const QString&, const QString&, qint64, const QString&)), Qt::QueuedConnection);
-	connect(this, SIGNAL(uiMessageSendError(qint64)),
-		this, SLOT(onUiMessageSendError(qint64)), Qt::QueuedConnection);
+	connect(this, SIGNAL(uiError(avc::ChatError* error)),
+		this, SLOT(onUiError(avc::ChatError* error)), Qt::QueuedConnection);
+	connect(this, SIGNAL(uiFileTransferRequest(const QString&, qint64, bool, const QString& , int)),
+		this, SLOT(onUiFileTransferRequest(const QString&, qint64, bool, const QString& , int)));
 	connect(pushButton, SIGNAL(clicked()), this, SLOT(onSendClicked()));
 	connect(addPicBtn, SIGNAL(clicked()), this, SLOT(onAddPicClicked()));
 	connect(closeButton, SIGNAL(clicked()), this, SLOT(onCloseButtonClicked()));
@@ -69,12 +73,10 @@ void qtchatclient::onNewMessage(const std::wstring& sender, const std::wstring& 
 		timestamp, QString::fromStdWString(message));
 }
 
-__override void qtchatclient::onMessageSendError(int64_t timestamp)
+__override void qtchatclient::onChatError(avc::ChatError* error)
 {
-	emit uiMessageSendError(timestamp);
+	emit uiError(error);
 }
-
-
 
 void qtchatclient::onNewUserList()
 {
@@ -130,6 +132,7 @@ OneToOneRoom* qtchatclient::getRoom(const std::wstring& username)
 __override void qtchatclient::onFileRequest(const std::wstring& sender, int64_t timestamp, bool isFolder,
 	const std::wstring& filename, int64_t fileSize)
 {
+	emit uiFileTransferRequest(QString::fromStdWString(sender), timestamp, isFolder, QString::fromStdWString(filename), (int)fileSize);
 }
 
 void qtchatclient::addMessage(const QString& username, time_t timestamp, const QString& message)
@@ -199,12 +202,40 @@ void qtchatclient::createTray()
 	trayIcon_->show();
 }
 
-void qtchatclient::onUiMessageSendError(qint64 timestamp)
+void qtchatclient::onUiError(avc::ChatError* error)
 {
-	textBrowser->markError(timestamp);
+	auto type = error->getType();
+	switch (type) {
+		case avc::kChatError_Message: {
+			auto msgError = dynamic_cast<avc::MessageError*>(error);
+			auto name = msgError->getRemoteName();
+			if (name == L"all")
+				textBrowser->markSendError(msgError->getId());
+			else {
+				auto room = getRoom(name);
+			}
+		}
+			break;
+		default:
+			break;
+	}
+	delete error;
 }
 
 void qtchatclient::onCloseButtonClicked()
 {
-	textBrowser->markError(0);
+	textBrowser->markSendError(0);
+}
+
+void qtchatclient::onUiFileTransferRequest(const QString& sender, qint64 timestamp,
+	bool isFolder, const QString& filename, int fileSize)
+{
+	auto room = getRoom(sender.toStdWString());
+	room->addFileRequest(sender, timestamp, false, filename, fileSize);
+	room->show();
+}
+
+__override void qtchatclient::onFileRequestAck(const std::wstring& sender, int64_t timestamp, bool allow)
+{
+
 }

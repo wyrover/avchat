@@ -10,7 +10,7 @@ public:
 	TextViewer(QWidget* parent = 0);
 	~TextViewer();
 	void addMessage(const QString& username, bool self, time_t timestamp, const QString& message, const QString& imageDir);
-	bool markError(time_t timestamp);
+	bool markSendError(time_t timestamp);
 
 protected:
 	virtual void paintEvent(QPaintEvent *e);

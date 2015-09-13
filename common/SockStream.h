@@ -7,6 +7,7 @@ public:
 	SockStream(char* buff, size_t len);
 	~SockStream();
 	void clear();
+	int writeShort(short value);
 	int writeInt(int value);
 	int writeInt64(int64_t value);
 	int writeString(const std::wstring& str);
@@ -19,6 +20,7 @@ public:
 	int writeStringVec(const std::vector<std::wstring>& strVec);
 	void flushSize();
 
+	short getShort();
 	int getInt();
 	int64_t getInt64();
 	std::wstring getString();

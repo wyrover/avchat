@@ -12,5 +12,67 @@
       <file>Resources/min.png</file>
       <file>Resources/file.png</file>
       <file>Resources/error.png</file>
+      <file>Resources/filetypes/aac.png</file>
+      <file>Resources/filetypes/ai.png</file>
+      <file>Resources/filetypes/aif.png</file>
+      <file>Resources/filetypes/asp.png</file>
+      <file>Resources/filetypes/aspx.png</file>
+      <file>Resources/filetypes/avi.png</file>
+      <file>Resources/filetypes/bin.png</file>
+      <file>Resources/filetypes/bmp.png</file>
+      <file>Resources/filetypes/css.png</file>
+      <file>Resources/filetypes/db.png</file>
+      <file>Resources/filetypes/dll.png</file>
+      <file>Resources/filetypes/dll2.png</file>
+      <file>Resources/filetypes/doc.png</file>
+      <file>Resources/filetypes/eps.png</file>
+      <file>Resources/filetypes/exe1.png</file>
+      <file>Resources/filetypes/exe2.png</file>
+      <file>Resources/filetypes/fav.png</file>
+      <file>Resources/filetypes/genericBlue.png</file>
+      <file>Resources/filetypes/genericGray.png</file>
+      <file>Resources/filetypes/genericOrange.png</file>
+      <file>Resources/filetypes/genericRed.png</file>
+      <file>Resources/filetypes/genericTurquesa.png</file>
+      <file>Resources/filetypes/gif.png</file>
+      <file>Resources/filetypes/gz.png</file>
+      <file>Resources/filetypes/help.png</file>
+      <file>Resources/filetypes/help2.png</file>
+      <file>Resources/filetypes/hqx.png</file>
+      <file>Resources/filetypes/html.png</file>
+      <file>Resources/filetypes/htmlFirefox.png</file>
+      <file>Resources/filetypes/htmlIE.png</file>
+      <file>Resources/filetypes/htmlSafari1.png</file>
+      <file>Resources/filetypes/htmlSafari2.png</file>
+      <file>Resources/filetypes/jpg.png</file>
+      <file>Resources/filetypes/js.png</file>
+      <file>Resources/filetypes/keke.txt</file>
+      <file>Resources/filetypes/mov.png</file>
+      <file>Resources/filetypes/mov2.png</file>
+      <file>Resources/filetypes/mp2.png</file>
+      <file>Resources/filetypes/mp3.png</file>
+      <file>Resources/filetypes/mp4.png</file>
+      <file>Resources/filetypes/mpg.png</file>
+      <file>Resources/filetypes/pdf.png</file>
+      <file>Resources/filetypes/php.png</file>
+      <file>Resources/filetypes/pic.png</file>
+      <file>Resources/filetypes/png.png</file>
+      <file>Resources/filetypes/pps.png</file>
+      <file>Resources/filetypes/ppt.png</file>
+      <file>Resources/filetypes/psd.png</file>
+      <file>Resources/filetypes/rar.png</file>
+      <file>Resources/filetypes/rb.png</file>
+      <file>Resources/filetypes/rtf.png</file>
+      <file>Resources/filetypes/tif.png</file>
+      <file>Resources/filetypes/ttf.png</file>
+      <file>Resources/filetypes/txt.png</file>
+      <file>Resources/filetypes/vbs.png</file>
+      <file>Resources/filetypes/vbs2.png</file>
+      <file>Resources/filetypes/warning.png</file>
+      <file>Resources/filetypes/wav.png</file>
+      <file>Resources/filetypes/xls.png</file>
+      <file>Resources/filetypes/xml.png</file>
+      <file>Resources/filetypes/zip.png</file>
+      <file>Resources/filetypes/zip2.png</file>
     </qresource>
 </RCC>

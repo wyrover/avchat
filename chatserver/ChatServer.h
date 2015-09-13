@@ -11,10 +11,12 @@ public:
 	HERRCODE start();
 	void wait();
 	bool quit();
+	HANDLE getCompletePortHandle();
+	const static int kTcpCompKey = 233;
+	const static int kUdpCompKey = 235;
 
 private:
-	HERRCODE initWinsock();
-	HERRCODE initListen();
+	HERRCODE initSock();
 	void threadFun();
 
 	bool queueCompletionStatus();
@@ -23,6 +25,7 @@ private:
 
 private:
 	SOCKET listenSock_;
+	SOCKET udpSock_;
 	HANDLE hComp_;
 	std::vector<std::thread> threads_;
 	std::atomic<bool> quit_;

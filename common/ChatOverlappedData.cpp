@@ -46,3 +46,18 @@ int ChatOverlappedData::getProp()
 {
 	return prop_;
 }
+
+sockaddr_in* ChatOverlappedData::getAddr()
+{
+	return &addr_;
+}
+
+int * ChatOverlappedData::getAddrLen()
+{
+	return &addrLen_;
+}
+
+int * ChatOverlappedData::getBytesSent()
+{
+	return &bytesSent_;
+}

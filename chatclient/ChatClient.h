@@ -8,51 +8,72 @@
 #include <Windows.h>
 #include "../common/errcode.h"
 #include "CommandCenter.h"
-#include "MessageManager.h"
+#include "ErrorManager.h"
 #include "IChatClientController.h"
+#include "RequestFilesInfo.h"
+#include "TcpPeerManager.h"
+
 class ChatOverlappedData;
 
-class ChatClient
+namespace avc
 {
-public:
-	ChatClient();
-	~ChatClient();
-	HERRCODE init(const std::wstring& serverAddr, int port);
-	HERRCODE login(const std::wstring& username, const std::wstring& password);
-	HERRCODE autoLogin(const std::wstring& username, const std::wstring& token);
-	HERRCODE sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
-	HERRCODE logout();
+	class ChatClient
+	{
+	public:
+		const static int kServerKey = 233;
+		const static int kPeerListenKey = 234;
+		const static int kPeerConnKey = 235;
 
-	MessageManager& messageMan();
-	IChatClientController* controller();
+	public:
+		ChatClient();
+		~ChatClient();
+		HERRCODE init(const std::wstring& serverAddr, int port);
+		HERRCODE login(const std::wstring& username, const std::wstring& password);
+		HERRCODE autoLogin(const std::wstring& username, const std::wstring& token);
+		HERRCODE sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
+		HERRCODE sendFileTransferRequest(const std::wstring& username, const RequestFilesInfo& fileInfo, time_t timestamp);
+		HERRCODE confirmFileTransferRequest(const std::wstring& username, time_t timestamp, bool recv, const std::wstring& savePath);
+		HERRCODE logout();
 
-	void queueCheckTimeoutTask();
-	void setImageCacheDir(const std::wstring& filePath);
-	std::wstring getImageDir();
-	std::vector<std::wstring> getUserList();
-	void setController(IChatClientController* controller);
-	std::wstring getEmail();
-	void start();
+		ErrorManager& messageMan();
+		TcpPeerManager& peerMan();
+		IChatClientController* controller();
 
-private:
-	HERRCODE initWinsock();
-	HERRCODE loginImpl(int type, const std::wstring& username, const std::wstring& credential);
-	bool queueCompletionStatus();
-	void queueSendRequest(SOCKET socket, SockStream& stream);
-	void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
-	void threadFun(bool initRecv);
-	void quit(bool wait);
+		void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
+		HANDLE getHandleComp();
+		void queueCheckTimeoutTask();
+		void setImageCacheDir(const std::wstring& filePath);
+		std::wstring getImageDir();
+		std::vector<std::wstring> getUserList();
+		void setController(IChatClientController* controller);
+		std::wstring getEmail();
+		void start();
 
-private:
-	HANDLE hComp_;
-	std::vector<std::thread> threads_;
-	std::atomic<bool> quit_;
-	CommandCenter cmdCenter_;
-	std::wstring email_;
-	std::wstring authKey_;
-	std::wstring imageCache_;
-	SOCKET sock_;
-	sockaddr_in serverAddr_;
-	IChatClientController* controller_;
-	MessageManager msgMan_;
-};
+	private:
+		HERRCODE loginImpl(int type, const std::wstring& username, const std::wstring& credential);
+		bool queueCompletionStatus();
+		void queueSendRequest(SOCKET socket, SockStream& stream);
+		void threadFun(bool initRecv);
+		void quit(bool wait);
+		HERRCODE initSocks(SOCKET sock);
+
+	private:
+		HANDLE hComp_;
+		std::vector<std::thread> threads_;
+		std::atomic<bool> quit_;
+		CommandCenter cmdCenter_;
+		TcpPeerManager peerMan_;
+
+		std::wstring email_;
+		std::wstring authKey_;
+		std::wstring imageCache_;
+
+		SOCKET sock_;
+		int serverPort_;
+		std::wstring serverAddr_;
+
+
+		IChatClientController* controller_;
+		ErrorManager msgMan_;
+	};
+}

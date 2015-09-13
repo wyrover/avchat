@@ -7,7 +7,7 @@
 #include <qmath.h>
 #include "CustomShadowEffect.h"
 
-LoginDialog::LoginDialog(ChatClient* client)
+LoginDialog::LoginDialog(avc::ChatClient* client)
 {
 	setupUi(this);
 	setStyleSheet("#mainWidget{ background: url(:Resources/logindialog.png); background-repeat: no-repeat; border:none; }");

@@ -87,9 +87,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ChatClient.h" />
+    <ClInclude Include="ChatError.h" />
+    <ClInclude Include="ChatRequest.h" />
+    <ClInclude Include="common_inc.h" />
     <ClInclude Include="ImageMessageForRecv.h" />
     <ClInclude Include="ImageMessageForSend.h" />
-    <ClInclude Include="MessageManager.h" />
+    <ClInclude Include="ErrorManager.h" />
+    <ClInclude Include="MessageError.h" />
+    <ClInclude Include="MessageRequest.h" />
+    <ClInclude Include="TcpPeerManager.h" />
+    <ClInclude Include="RequestFilesInfo.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="CommandCenter.h" />
     <ClInclude Include="FileManager.h" />
@@ -100,9 +107,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chatclient.cpp" />
+    <ClCompile Include="ChatError.cpp" />
+    <ClCompile Include="ChatRequest.cpp" />
     <ClCompile Include="ImageMessageForRecv.cpp" />
     <ClCompile Include="ImageMessageForSend.cpp" />
-    <ClCompile Include="MessageManager.cpp" />
+    <ClCompile Include="ErrorManager.cpp" />
+    <ClCompile Include="MessageError.cpp" />
+    <ClCompile Include="MessageRequest.cpp" />
+    <ClCompile Include="TcpPeerManager.cpp" />
+    <ClCompile Include="RequestFilesInfo.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="client.cpp" />
     <ClCompile Include="CommandCenter.cpp" />

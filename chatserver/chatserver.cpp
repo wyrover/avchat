@@ -19,13 +19,13 @@
 
 #define LOG_LOGIN 1
 #define LOG_IOCP 0
-const static int kCompKey = 233;
 const static int kPort = 2333;
 const static int kMaxAcceptRequest = 1000;
 LPFN_GETACCEPTEXSOCKADDRS ChatServer::lpfnGetAcceptExSockaddrs = nullptr;
 LPFN_ACCEPTEX ChatServer::lpfnAcceptEx = nullptr;
 
 ChatServer::ChatServer()
+	: cmdCenter_(this)
 {
 	quit_ = false;
 	acceptRequest_ = 0;
@@ -34,46 +34,36 @@ ChatServer::ChatServer()
 
 ChatServer::~ChatServer()
 {
-	WSACleanup();
 }
 
 HERRCODE ChatServer::start()
 {
-	auto hr = initWinsock();
+	auto hr = ServerContext::getInstance()->init();
 	if (hr != H_OK)
 		return hr;
 
-	hr = ServerContext::getInstance()->init();
-	if (hr != H_OK)
-		return hr;
-
-	hr = initListen();
+	hr = initSock();
 	return hr;
 }
 
-HERRCODE ChatServer::initWinsock()
-{
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int err;
-	wVersionRequested = MAKEWORD(2, 2);
-	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0)
-		return H_NETWORK_ERROR;
-
-	return H_OK;
-}
-
-int ChatServer::initListen()
+int ChatServer::initSock()
 {
 	listenSock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (listenSock_ == INVALID_SOCKET)
 		return H_NETWORK_ERROR;
+	udpSock_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	if (udpSock_ == INVALID_SOCKET)
+		return H_NETWORK_ERROR;
+
 	hComp_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (hComp_ == NULL)
 		return H_SERVER_ERROR;
 
-	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)listenSock_, hComp_, kCompKey, 0);
+	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)listenSock_, hComp_, kTcpCompKey, 0);
+	if (hComp2 != hComp_)
+		return H_SERVER_ERROR;
+
+	hComp2 = CreateIoCompletionPort((HANDLE)udpSock_, hComp_, kUdpCompKey, 0);
 	if (hComp2 != hComp_)
 		return H_SERVER_ERROR;
 	
@@ -85,6 +75,11 @@ int ChatServer::initListen()
 	addr.sin_addr = in_addr;
 
 	int ret = bind(listenSock_, (const sockaddr*)&addr, sizeof(sockaddr_in));
+	if (ret != 0) {
+		return H_NETWORK_ERROR;
+	}
+
+	ret = bind(udpSock_, (const sockaddr*)&addr, sizeof(sockaddr_in));
 	if (ret != 0) {
 		return H_NETWORK_ERROR;
 	}
@@ -112,6 +107,9 @@ int ChatServer::initListen()
 	for (int i = 0; i < threadCount; ++i){
 		threads_.push_back(std::thread(&ChatServer::threadFun, this));
 	}
+	ChatOverlappedData* overlap = new ChatOverlappedData(net::kAction_Recv);
+	overlap->setSocket(udpSock_);
+	base::Utils::QueueRecvCmdRequest(udpSock_, hComp_, kUdpCompKey);
 	return H_OK;
 }
 
@@ -146,23 +144,28 @@ void ChatServer::threadFun()
 
 bool ChatServer::queueCompletionStatus()
 {
-	TRACE_IF(LOG_IOCP,"try to queue completion status\n");
+	TRACE_IF(LOG_IOCP, "try to queue completion status\n");
 	DWORD bytes;
 	ULONG_PTR key; ChatOverlappedData* ol;
 	if (!GetQueuedCompletionStatus(hComp_, &bytes, &key, (LPOVERLAPPED*)&ol, 0)) {
-		TRACE_IF(LOG_IOCP,"no queued completion status\n");
+		TRACE_IF(LOG_IOCP, "no queued completion status\n");
 		return false;
 	}
 	int type = ol->getNetType();
-	TRACE_IF(LOG_IOCP, "get queued completion status type = %d\n", type);
-	if (type == net::kAction_Accept) {
-		onAccept(ol, bytes, key);
-	} else if (type == net::kAction_Recv) {
-		TRACE("get recv request result for ol %x\n", ol);
-		onRecv(ol, bytes, key);
-	} else if (type == net::kAction_Send) {
+	if (key == kTcpCompKey) {
+		TRACE_IF(LOG_IOCP, "get queued completion status type = %d\n", type);
+		if (type == net::kAction_Accept) {
+			onAccept(ol, bytes, key);
+		} else if (type == net::kAction_Recv) {
+			TRACE("get recv request result for ol %x\n", ol);
+			onRecv(ol, bytes, key);
+		} else if (type == net::kAction_Send) {
 
-	} 
+		}
+	} else if (key == kUdpCompKey) {
+		if (type == net::kAction_Recv) {
+		}
+	}
 	return true; 
 }
 
@@ -176,7 +179,7 @@ void ChatServer::onAccept(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key)
 		sizeof(sockaddr_in) + 16, sizeof(sockaddr_in) + 16,
 		&localAddr, &localAddrLen, &remoteAddr, &remoteAddrLen);
 
-	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)ol->getSocket(), hComp_, kCompKey, 0);
+	HANDLE hComp2 = CreateIoCompletionPort((HANDLE)ol->getSocket(), hComp_, kTcpCompKey, 0);
 	assert(hComp2 == hComp_);
 
 	char str[20];
@@ -203,4 +206,9 @@ void ChatServer::wait()
 	for (auto& thread : threads_){
 		thread.join();
 	}
+}
+
+HANDLE ChatServer::getCompletePortHandle()
+{
+	return hComp_;
 }

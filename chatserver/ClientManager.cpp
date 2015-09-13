@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "client.h"
 #include "ClientManager.h"
+#include "User.h"
 
 
 ClientManager::ClientManager()
@@ -37,4 +38,16 @@ HERRCODE ClientManager::getClientSocket(const std::wstring& email, SOCKET* socke
 	}
 	*socket = client->getSocket();
 	return H_OK;
+}
+
+HERRCODE ClientManager::getEmailBySocket(SOCKET sock, std::wstring* email)
+{
+	std::lock_guard<std::recursive_mutex> lock(fMutex);
+	for (auto& item : fClientMap) {
+		if (item.second->getSocket() == sock) {
+			*email = item.second->getEmail();
+			return H_OK;
+		}
+	}
+	return H_FAILED;
 }

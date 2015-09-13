@@ -1,5 +1,5 @@
 #pragma once
-namespace client
+namespace avc
 {
 	class Utils
 	{

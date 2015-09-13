@@ -149,7 +149,7 @@ void TextViewer::addBubbleTextFrame(const QString& username, const QString& mess
 	if (message.indexOf("<img") != -1) {
 		std::vector<std::wstring> imageList;
 		std::wstring qtMessage;
-		client::Utils::XmlMessageToQtMessage(message.toStdWString(), &imageList, &qtMessage);
+		avc::Utils::XmlMessageToQtMessage(message.toStdWString(), &imageList, &qtMessage);
 		int index = 0;
 		int pos = -1;
 		int imageIndex = 0;
@@ -214,7 +214,7 @@ void TextViewer::onAnimate(int a)
 	}
 }
 
-bool TextViewer::markError(time_t timestamp)
+bool TextViewer::markSendError(time_t timestamp)
 {
 	auto rootFrame = document()->rootFrame();
 	QTextFrame::iterator it = rootFrame->end();

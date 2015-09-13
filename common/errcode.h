@@ -9,3 +9,5 @@ typedef int32_t HERRCODE;
 #define H_NETWORK_ERROR -5
 #define H_INVALID_FORMAT -6
 #define H_ERROR_NOT_FOUND -7
+#define H_INAVLID_ARGUMENT -8
+#define H_INVALID_PACKAGE -9
