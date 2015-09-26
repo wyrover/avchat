@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "client.h"
+#include "Client.h"
 #include "ClientManager.h"
 #include "User.h"
 
@@ -13,14 +13,14 @@ ClientManager::~ClientManager()
 {
 }
 
-HERRCODE ClientManager::addClient(const std::wstring& email, Client* client)
+HERRCODE ClientManager::addClient(const std::u16string& email, Client* client)
 {
 	std::lock_guard<std::recursive_mutex> lock(fMutex);
 	fClientMap[email] = client;
 	return H_OK;
 }
 
-HERRCODE ClientManager::removeClient(const std::wstring& email)
+HERRCODE ClientManager::removeClient(const std::u16string& email)
 {
 	std::lock_guard<std::recursive_mutex> lock(fMutex);
 	auto client = fClientMap[email];
@@ -28,7 +28,7 @@ HERRCODE ClientManager::removeClient(const std::wstring& email)
 	return H_OK;
 }
 
-HERRCODE ClientManager::getClientSocket(const std::wstring& email, SOCKET* socket)
+HERRCODE ClientManager::getClientSocket(const std::u16string& email, SOCKET* socket)
 {
 	std::lock_guard<std::recursive_mutex> lock(fMutex);
 	auto client = fClientMap[email];
@@ -40,7 +40,7 @@ HERRCODE ClientManager::getClientSocket(const std::wstring& email, SOCKET* socke
 	return H_OK;
 }
 
-HERRCODE ClientManager::getEmailBySocket(SOCKET sock, std::wstring* email)
+HERRCODE ClientManager::getEmailBySocket(SOCKET sock, std::u16string* email)
 {
 	std::lock_guard<std::recursive_mutex> lock(fMutex);
 	for (auto& item : fClientMap) {

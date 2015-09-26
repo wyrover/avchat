@@ -16,12 +16,12 @@ SOCKET Client::getSocket()
 	return socket_;
 }
 
-std::wstring Client::getUsername() const
+std::u16string Client::getUsername() const
 {
 	return user_.username_;
 }
 
-std::wstring Client::getEmail() const
+std::u16string Client::getEmail() const
 {
 	return user_.email_;
 }
@@ -29,5 +29,5 @@ std::wstring Client::getEmail() const
 void Client::logout()
 {
 	user_.logout();
-	closesocket(socket_);
+	close(socket_);
 }

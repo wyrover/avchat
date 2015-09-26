@@ -6,7 +6,7 @@
 class User
 {
 	friend class Client;
-public:
+	public:
 	enum UserStatus {
 		kStatus_Invalid,
 		kStatus_Online,
@@ -14,7 +14,7 @@ public:
 	};
 	User();
 	~User();
-	HERRCODE login(int authType, const std::wstring& email, const std::wstring& password);
+	HERRCODE login(int authType, const std::u16string& email, const std::u16string& password);
 	HERRCODE logout();
 
 	int requestAddFriend(int userId);
@@ -22,12 +22,12 @@ public:
 	int removeFriend(int userId);
 	int quitGroup(int groupId);
 	int getStatus();
-	std::wstring getAuthKey();
+	std::u16string getAuthKey();
 
-protected:
+	protected:
 	int id_;
-	std::wstring email_;
-	std::wstring username_;
-	std::wstring authKey_;
+	std::u16string email_;
+	std::u16string username_;
+	std::u16string authKey_;
 	int status_;
 };

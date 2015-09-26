@@ -1,12 +1,11 @@
 #include "stdafx.h"
 #include "../common/errcode.h"
 #include "../common/FileUtils.h"
+#include "../common/StringUtils.h"
 #include "FileMan.h"
 #include "Utils.h"
 #include "ServerContext.h"
 #include "DBContext.h"
-#include <strsafe.h>
-#include <Shlwapi.h>
 
 FileMan::FileMan()
 {
@@ -16,40 +15,41 @@ FileMan::~FileMan()
 {
 }
 
-HERRCODE FileMan::addFile(buffer& buf, const std::wstring& fileExt, std::wstring* url)
+HERRCODE FileMan::addFile(buffer& buf, const std::u16string& fileExt, std::u16string* url)
 {
 	if (!Utils::IsImage(buf))
 		return H_INVALID_FORMAT;
 	if (!Utils::IsImageExt(fileExt))
 		return H_INVALID_FORMAT;
-	WCHAR path[MAX_PATH];
-	StringCchCopy(path, MAX_PATH, ServerContext::getInstance()->getImageDir().c_str());
-	auto fileName = Utils::GetRandomFileName() + L"." + fileExt;
-	PathAppend(path, fileName.c_str());
-	if (!FileUtils::FnCreateFile(path, buf)) {
+	std::string filePath = ServerContext::getInstance()->getImageDir();
+	auto fileName = StringUtils::Utf16ToUtf8String(Utils::GetRandomFileName() + u"." + fileExt);
+	filePath += fileName;
+	if (!FileUtils::FnCreateFile(filePath, buf)) {
 		return H_FAILED;
 	}
-	std::wstring hashId;
-	if (FileUtils::CalculateFileSHA1(path, &hashId) != 0)
+	std::string hashId;
+	if (FileUtils::CalculateFileSHA1(filePath, &hashId) != 0)
 		return H_FAILED;
 	auto hr = ServerContext::getInstance()->getDBContext()->addFile(hashId, fileName);
 	if (hr == H_OK) {
-		*url = fileName;
+		*url = StringUtils::Utf8ToUtf16String(fileName);
 	}
 	return hr;
 }
 
-HERRCODE FileMan::getFileUrl(const std::wstring& hashId, std::wstring* url)
+HERRCODE FileMan::getFileUrl(const std::u16string& hashId, std::u16string* url)
 {
-	return ServerContext::getInstance()->getDBContext()->getFileUrl(hashId, url);
+	std::string utf8Url;
+	auto rc = ServerContext::getInstance()->getDBContext()->getFileUrl(StringUtils::Utf16ToUtf8String(hashId), &utf8Url);
+	*url = StringUtils::Utf8ToUtf16String(utf8Url);
+	return rc;
 }
 
-HERRCODE FileMan::getFile(const std::wstring& url, buffer& outBuf)
+HERRCODE FileMan::getFile(const std::u16string& url, buffer& outBuf)
 {
-	WCHAR path[MAX_PATH];
-	StringCchCopy(path, MAX_PATH, ServerContext::getInstance()->getImageDir().c_str());
-	PathAppend(path, url.c_str());
-	if (!FileUtils::ReadAll(path, outBuf))
+	std::string filePath = ServerContext::getInstance()->getImageDir();
+	filePath += StringUtils::Utf16ToUtf8String(url);
+	if (!FileUtils::ReadAll(filePath, outBuf))
 		return H_FAILED;
 	return H_OK;
 }

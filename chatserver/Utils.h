@@ -8,7 +8,7 @@ public:
 	static std::string GeneratePasswordHash(const std::string& password, const std::string& salt);
 	static bool ValidatePasswordHash(const std::string& password, const std::string& password_hash);
 	static bool IsImage(buffer& buf);
-	static bool IsImageExt(const std::wstring& ext);
-	static std::wstring GetRandomFileName();
+	static bool IsImageExt(const std::u16string& ext);
+	static std::u16string GetRandomFileName();
 };
 

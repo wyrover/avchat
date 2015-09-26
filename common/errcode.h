@@ -1,6 +1,5 @@
 #pragma once
-
-typedef int32_t HERRCODE;
+typedef int HERRCODE;
 #define H_OK 0
 #define H_FAILED -1
 #define H_AUTH_FAILED -2
@@ -11,3 +10,5 @@ typedef int32_t HERRCODE;
 #define H_ERROR_NOT_FOUND -7
 #define H_INAVLID_ARGUMENT -8
 #define H_INVALID_PACKAGE -9
+
+

@@ -28,3 +28,5 @@ void Trace(const char* fileName, const int line, const char* funName, const char
 			Trace(__SHORT_FILE__, __LINE__, __FUNCTION__, format, __VA_ARGS__); \
 								} \
 				} while(0);}
+
+

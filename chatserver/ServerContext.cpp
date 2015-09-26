@@ -1,19 +1,25 @@
 #include "stdafx.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#include <string>
 #include "ServerContext.h"
 
+static const char kImageDir[] = "avchat/image/";
 ServerContext::ServerContext()
 {
-	WCHAR szPath[MAX_PATH];
-	SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, szPath);
-	PathAppend(szPath, L"\\fakecoder\\server_cache\\");
-	SHCreateDirectoryEx(NULL, szPath, NULL);
+	auto pw = getpwuid(getuid());
+	auto homedir = pw->pw_dir;
+	imageDir_ = homedir;
+	imageDir_ += kImageDir;
+	mkdir(imageDir_.c_str(), 0666);
 }
 
 ServerContext::~ServerContext()
 {
 }
 
-// FIXME: ini read write
 int ServerContext::init()
 {
 	return db_.init();
@@ -30,7 +36,7 @@ DBContext* ServerContext::getDBContext()
 	return &db_;
 }
 
-std::wstring ServerContext::getImageDir()
+std::string ServerContext::getImageDir()
 {
 	return imageDir_;
 }

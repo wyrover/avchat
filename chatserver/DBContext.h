@@ -12,8 +12,8 @@ public:
 	HERRCODE init();
 	sql::PreparedStatement* getLoginStmt();
 	sql::PreparedStatement* getStatusStmt();
-	HERRCODE getFileUrl(const std::wstring& hashId, std::wstring* url);
-	HERRCODE addFile(const std::wstring& hashId, const std::wstring& url);
+	HERRCODE getFileUrl(const std::string& hashId, std::string* url);
+	HERRCODE addFile(const std::string& hashId, const std::string& url);
 
 private:
 	std::unique_ptr<sql::Connection> dbConn_;

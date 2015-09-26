@@ -15,7 +15,7 @@ User::~User()
 {
 }
 
-HERRCODE User::login(int authType, const std::wstring& email, const std::wstring& credential)
+HERRCODE User::login(int authType, const std::u16string& email, const std::u16string& credential)
 {
 	auto loginStmt = ServerContext::getInstance()->getDBContext()->getLoginStmt();
 	auto statusStmt = ServerContext::getInstance()->getDBContext()->getStatusStmt();
@@ -82,7 +82,7 @@ int User::getStatus()
 	return H_OK;
 }
 
-std::wstring User::getAuthKey()
+std::u16string User::getAuthKey()
 {
 	return authKey_;
 }

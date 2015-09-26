@@ -5,6 +5,8 @@
 
 #pragma once
 
+#ifdef _WIN32
+
 #include "targetver.h"
 
 #include <stdio.h>
@@ -30,3 +32,7 @@
 #include <Shlobj.h>
 #include <Shlwapi.h>
 #include <bcrypt.h>     // Cryptography API#include <windows.h>
+
+#elif __gnu_linux_
+
+#endif

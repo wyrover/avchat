@@ -8,8 +8,8 @@ public:
 	Client(const User& user, SOCKET socket);
 	~Client();
 	SOCKET getSocket();
-	std::wstring getUsername() const;
-	std::wstring getEmail() const;
+	std::u16string getUsername() const;
+	std::u16string getEmail() const;
 	void logout();
 
 private:

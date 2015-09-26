@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "SockStream.h"
 #include "buffer.h"
+#include "Utils.h"
+#include "StringUtils.h"
 
 SockStream::SockStream()
 {
@@ -35,11 +37,17 @@ int SockStream::writeInt64(int64_t value)
 	return write((char*)&value, 8);
 }
 
-int SockStream::writeString(const std::wstring& str)
+int SockStream::writeString(const std::u16string& str)
 {
 	int len = writeInt(str.length());
-	len += write((char*)str.c_str(), str.length() * sizeof(wchar_t));
+	len += write((char*)str.c_str(), str.length() * sizeof(char16_t));
 	return len;
+}
+
+
+int SockStream::writeUtf8String(const std::string& str)
+{
+	writeString(StringUtils::Utf8ToUtf16String(str));
 }
 
 int SockStream::writeDouble(double value)
@@ -94,14 +102,19 @@ int64_t SockStream::getInt64()
 	return value;
 }
 
-std::wstring SockStream::getString()
+std::u16string SockStream::getString()
 {
 	int len = getInt();
 	if (curr_ + len > size_)
 		throw std::out_of_range("read error");
-	std::wstring result((wchar_t*)(buff_ + curr_), len);
-	curr_ += len * sizeof(wchar_t);
+	std::u16string result((char16_t*)(buff_ + curr_), len);
+	curr_ += len * sizeof(char16_t);
 	return result;
+}
+
+std::string SockStream::getUtf8String()
+{
+	return StringUtils::Utf16ToUtf8String(getString());
 }
 
 double SockStream::getDouble()
@@ -195,7 +208,7 @@ char* SockStream::getCurrPtr()
 		return buff_ + size_;
 }
 
-int SockStream::writeStringVec(const std::vector<std::wstring>& strVec)
+int SockStream::writeStringVec(const std::vector<std::u16string>& strVec)
 {
 	int bytes = writeInt(strVec.size());
 	for (auto str : strVec) {
@@ -204,12 +217,32 @@ int SockStream::writeStringVec(const std::vector<std::wstring>& strVec)
 	return bytes;
 }
 
-std::vector<std::wstring> SockStream::getStringVec()
+int SockStream::writeUtf8StringVec(const std::vector<std::string>& strVec)
 {
-	std::vector<std::wstring> result;
+	int bytes = writeInt(strVec.size());
+	for (auto str : strVec) {
+		bytes += writeUtf8String(str);
+	}
+	return bytes;
+}
+
+std::vector<std::u16string> SockStream::getStringVec()
+{
+	std::vector<std::u16string> result;
 	int count = getInt();
 	while (count--) {
 		result.push_back(getString());
+	}
+	return result;
+}
+
+
+std::vector<std::string> SockStream::getUtf8StringVec()
+{
+	std::vector<std::string> result;
+	int count = getInt();
+	while (count--) {
+		result.push_back(getUtf8String());
 	}
 	return result;
 }

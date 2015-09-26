@@ -15,6 +15,7 @@ struct CommandInfo
 	int fNeededLen;
 	int fCmdLen;
 };
+
 class CommandCenter
 {
 public:
@@ -27,7 +28,7 @@ private:
 	void onCmdLogin(SOCKET socket, SockStream& stream);
 	void onCmdLogout(SOCKET socket, SockStream& stream);
 	HERRCODE onCmdMessage(SOCKET socket, SockStream& stream);
-	void onCmdFileCheck(SOCKET socket, int id, const std::vector<std::wstring>& hashList);
+	void onCmdFileCheck(SOCKET socket, int id, const std::vector<std::u16string>& hashList);
 	void onCmdFileUpload(SOCKET socket, SockStream& stream);
 	void onCmdFileDownload(SOCKET socket, SockStream& stream);
 	void onCmdFileTransferRequest(SOCKET socket, SockStream& stream);
@@ -45,3 +46,4 @@ private:
 	FileMan fileMan_;
 	ChatServer* server_;
 };
+

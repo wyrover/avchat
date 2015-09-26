@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "StringUtils.h"
+#include <boost/locale/encoding_utf.hpp>
 
 StringUtils::StringUtils()
 {
@@ -11,14 +12,12 @@ StringUtils::~StringUtils()
 
 }
 
-std::string StringUtils::Utf16ToUtf8String(const std::wstring& str)
+std::string StringUtils::Utf16ToUtf8String(const std::u16string& str)
 {
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
-	return convert.to_bytes(str);
+	boost::locale::conv::utf_to_utf<char>(str.c_str(), str.c_str() + str.length());
 }
 
-std::wstring StringUtils::Utf8ToUtf16String(const std::string& str)
+std::u16string StringUtils::Utf8ToUtf16String(const std::string& str)
 {
-	static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> convert;
-	return convert.from_bytes(str);
+	boost::locale::conv::utf_to_utf<char16_t>(str.c_str(), str.c_str() + str.length());
 }

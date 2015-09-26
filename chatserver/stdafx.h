@@ -5,6 +5,8 @@
 
 #pragma once
 
+#if _WIN32
+
 #include "targetver.h"
 
 #include <stdio.h>
@@ -39,3 +41,26 @@
 #include <boost/algorithm/string.hpp>
 
 #include "../common/buffer.h"
+
+#else
+#include <stdio.h>
+#include <thread>
+#include <memory>
+#include <map>
+#include <mutex>
+#include <atomic>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <locale>
+#include <mysql_connection.h>
+#include <mysql_driver.h>
+#include <mysql_error.h>
+#include <cppconn/prepared_statement.h>
+#include <boost/algorithm/string.hpp>
+#include "../common/buffer.h"
+typedef int SOCKET;
+typedef int HANDLE;
+typedef int DWORD;
+#define INVALID_SOCKET -1
+#endif

@@ -1,27 +1,29 @@
-#include "stdafx.h"
-#include "Utils.h"
+#include <string>
 #include <array>
+#include <boost/algorithm/string.hpp>
 #define _CRT_SECURE_NO_DEPRECATE
 #define CRYPTOPP_DEFAULT_NO_DLL
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
-#include "dll.h"
-#include "md5.h"
-#include "hmac.h"
-#include "ripemd.h"
-#include "pwdbased.h"
-#include "rng.h"
-#include "gzip.h"
-#include "default.h"
-#include "randpool.h"
-#include "ida.h"
-#include "base64.h"
-#include "socketft.h"
-#include "wait.h"
-#include "factory.h"
-#include "whrlpool.h"
-#include "tiger.h"
-#include "validate.h"
-#include "bench.h"
+#include "crypto++/dll.h"
+#include "crypto++/md5.h"
+#include "crypto++/hmac.h"
+#include "crypto++/ripemd.h"
+#include "crypto++/pwdbased.h"
+#include "crypto++/rng.h"
+#include "crypto++/gzip.h"
+#include "crypto++/default.h"
+#include "crypto++/randpool.h"
+#include "crypto++/ida.h"
+#include "crypto++/base64.h"
+#include "crypto++/socketft.h"
+#include "crypto++/wait.h"
+#include "crypto++/factory.h"
+#include "crypto++/whrlpool.h"
+#include "crypto++/tiger.h"
+#include "crypto++/bench.h"
+
+#include "../common/buffer.h"
+#include "Utils.h"
 
 static const int kIterations = 1000;
 
@@ -150,8 +152,8 @@ static std::vector<unsigned char> kBmpMagic = {
 	0x42, 0x4d,
 };
 
-static std::vector<std::wstring> kImageExts = {
-	L"jpg", L"jpeg", L"gif", L"png", L"bmp",
+static std::vector<std::u16string> kImageExts = {
+	u"jpg", u"jpeg", u"gif", u"png", u"bmp",
 };
 
 bool compareMagic(buffer& buf, const std::vector<unsigned char>& magic) {
@@ -187,19 +189,19 @@ bool Utils::IsImage(buffer& buf)
 }
 
 
-bool Utils::IsImageExt(const std::wstring& ext)
+bool Utils::IsImageExt(const std::u16string& ext)
 {
-	return std::find_if(kImageExts.begin(), kImageExts.end(), [&ext](const std::wstring& item) {
+	return std::find_if(kImageExts.begin(), kImageExts.end(), [&ext](const std::u16string& item) {
 		return boost::iequals(item, ext); }) != kImageExts.end();
 }
 
-std::wstring Utils::GetRandomFileName()
+std::u16string Utils::GetRandomFileName()
 {
 	using namespace CryptoPP;
 	AutoSeededRandomPool rng;
 	std::vector<byte> buffer(13);
 	rng.GenerateBlock(buffer.data(), buffer.size());
-	std::wstring fileName;
+	std::u16string fileName;
 	for (int i = 0; i < buffer.size(); i++) {
 		// restrict to length of range [a..z0..9]
 		int b = (buffer[i] % 36);

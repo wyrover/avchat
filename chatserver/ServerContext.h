@@ -10,9 +10,9 @@ public:
 	int init();
 	DBContext* getDBContext();
 	static ServerContext* getInstance();
-	std::wstring getImageDir();
+	std::string getImageDir();
 
 private:
 	DBContext db_;
-	std::wstring imageDir_;
+	std::string imageDir_;
 };
