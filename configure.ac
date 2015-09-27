@@ -20,6 +20,9 @@ AM_PROG_AR
 # Checks for libraries.
 AC_SEARCH_LIBS([_ZTIN8CryptoPP14CBC_EncryptionE], [crypto++ cryptopp], 
 		[],[AC_MSG_ERROR([avchat requires crypto++/cryptopp])])
+AC_SEARCH_LIBS([config_init], [config], 
+		[],[AC_MSG_ERROR([avchat requires libconfig])])
+
 
 MYSQL_CONFIG=$(which mysql_config)
 if test "$MYSQL_CONFIG"; then
