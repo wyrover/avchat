@@ -20,6 +20,8 @@ AM_PROG_AR
 # Checks for libraries.
 AC_SEARCH_LIBS([_ZTIN8CryptoPP14CBC_EncryptionE], [crypto++ cryptopp], 
 		[],[AC_MSG_ERROR([avchat requires crypto++/cryptopp])])
+AC_SEARCH_LIBS([mysql_init], [mysqlclient],
+		[],[AC_MSG_ERROR([avchat requires mysql client library])])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h string.h wchar.h])

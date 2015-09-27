@@ -3,6 +3,7 @@ AM_CPPFLAGS = -Wfatal-errors -std=c++11
 lib_LIBRARIES = libcommon.a
 libcommon_a_SOURCES = \
 				common/stdafx.h \
+				common/trace.h \
 				common/ChatCommand.h \
 				common/NetConstants.h \
 				common/SockStream.h \
