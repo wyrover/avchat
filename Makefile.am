@@ -43,5 +43,5 @@ server_SOURCES = \
 				chatserver/ClientManager.cpp \
 				chatserver/FileMan.cpp \
 				chatserver/Utils.cpp
-server_LDADD = -lmysqlcppconn-static -lmysqlclient -lcryptopp libcommon.a 
+server_LDADD = -lmysqlcppconn-static -lmysqlclient -lcryptopp -lconfig libcommon.a 
 server_LDFLAGS = -z defs

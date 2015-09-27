@@ -20,8 +20,6 @@ AM_PROG_AR
 # Checks for libraries.
 AC_SEARCH_LIBS([_ZTIN8CryptoPP14CBC_EncryptionE], [crypto++ cryptopp], 
 		[],[AC_MSG_ERROR([avchat requires crypto++/cryptopp])])
-AC_SEARCH_LIBS([mysql_init], [mysqlclient],
-		[],[AC_MSG_ERROR([avchat requires mysql client library])])
 
 MYSQL_CONFIG=$(which mysql_config)
 if test "$MYSQL_CONFIG"; then
@@ -38,12 +36,14 @@ else
 			MYSQL_INC_DIR=$i/include
 		fi
 	done
-	if test x${MYSQL_LIB_DIR} != x
-	then
+	if test x${MYSQL_LIB_DIR} != x; then
 		MYSQL_LDFLAGS="-L{MYSQL_LIB_DIR}"
 		MYSQL_CFLAGS="-I{MYSQL_INC_DIR}"
+	else
+		AC_MSG_ERROR([avchat requires mysql client])
 	fi
 fi
+
 LDFLAGS="$LDFLAGS $MYSQL_LDFLAGS"
 CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS"
 CFLAGS="$CFLAGS $MYSQL_CFLAGS"

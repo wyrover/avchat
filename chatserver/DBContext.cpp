@@ -2,6 +2,7 @@
 #include "DBContext.h"
 #include <cppconn/statement.h>
 #include <iostream>
+#include <libconfig.h>
 #include "../common/errcode.h"
 #include "../common/StringUtils.h"
 #include "Utils.h"
@@ -18,10 +19,53 @@ DBContext::~DBContext()
 // FIXME: ini read write
 HERRCODE DBContext::init()
 {
-	std::string url = "tcp://127.0.0.1:3306";
-	std::string user = "root";
-	std::string pass = "MyNewPass";
-	std::string dbName = "avchat";
+	config_t cfg;
+	config_setting_t *settings;
+	const char *str;
+	config_init(&cfg);
+	if (!config_read_file(&cfg, "avchat.cfg")) {
+		perror("cannot find configure file\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+	std::string url;
+	std::string user;
+	std::string pass;
+	std::string dbName;
+	if (config_lookup_string(&cfg, "url", &str)) {
+		url = str;
+	} else {
+		perror("db url missing\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+
+	if (config_lookup_string(&cfg, "user", &str)) {
+		user = str;
+	} else {
+		perror("db user missing\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+
+	if (config_lookup_string(&cfg, "password", &str)) {
+		pass = str;
+	} else {
+		perror("db password missing\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+
+	if (config_lookup_string(&cfg, "dbName", &str)) {
+		dbName = str;
+	} else {
+		perror("db password missing\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+
+	config_destroy(&cfg);
+
 	try {
 		sql::Driver * driver = sql::mysql::get_driver_instance();
 		auto conn = driver->connect(url, user, pass);
