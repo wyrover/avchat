@@ -1,11 +1,7 @@
-#include "ChatClientController.h"
-
+#include "chatclientcontroller.h"
 
 ChatClientController::ChatClientController()
 {
+
 }
 
-
-ChatClientController::~ChatClientController()
-{
-}
