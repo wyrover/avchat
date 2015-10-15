@@ -147,21 +147,21 @@ void TextViewer::addBubbleTextFrame(const QString& username, const QString& mess
 	blockFormat.setProperty(QTextFormat::UserProperty, "BubbleText");
 	c.insertBlock(blockFormat);
 	if (message.indexOf("<img") != -1) {
-		std::vector<std::wstring> imageList;
-		std::wstring qtMessage;
-		avc::Utils::XmlMessageToQtMessage(message.toStdWString(), &imageList, &qtMessage);
+		std::vector<std::u16string> imageList;
+		std::u16string qtMessage;
+		avc::Utils::XmlMessageToQtMessage(message.toStdU16String(), &imageList, &qtMessage);
 		int index = 0;
 		int pos = -1;
 		int imageIndex = 0;
 		while ((pos = qtMessage.find(L'\uffec', index)) != -1) {
-			auto text = QString::fromStdWString(qtMessage.substr(index, pos - index));
+			auto text = QString::fromStdU16String(qtMessage.substr(index, pos - index));
 			QDir dir(imageDir);
 			c.insertText(text);
-			addPicture(c, dir.filePath(QString::fromStdWString(imageList[imageIndex])));
+			addPicture(c, dir.filePath(QString::fromStdU16String(imageList[imageIndex])));
 			imageIndex++;
 			index = pos+1;
 		}
-		auto text = QString::fromStdWString(qtMessage.substr(index));
+		auto text = QString::fromStdU16String(qtMessage.substr(index));
 		c.insertText(text);
 	} else {
 		c.insertText(message);
@@ -172,7 +172,7 @@ void TextViewer::addBubbleTextFrame(const QString& username, const QString& mess
 
 void TextViewer::paintEvent(QPaintEvent *e)
 {
-	__super::paintEvent(e);
+    QTextBrowser::paintEvent(e);
 }
 
 void TextViewer::addPicture(QTextCursor& c, const QString& picFile)
@@ -298,7 +298,7 @@ void TextViewer::mouseDoubleClickEvent(QMouseEvent *event)
 	auto image = getImageByPos(event->pos());
 	if (!image.isNull()) {
 		ImageViewer* viewer = new ImageViewer();
-		viewer->setPixmap(QPixmap::fromImage(image));
+        //viewer->setPixmap(QPixmap::fromImage(image));
 		viewer->show();
 	}
 }
@@ -314,7 +314,7 @@ void TextViewer::contextMenuEvent(QContextMenuEvent * event)
 		menu->exec(event->globalPos());
 		event->accept();
 	} else {
-		__super::contextMenuEvent(event);
+        QTextBrowser::contextMenuEvent(event);
 	}
 }
 

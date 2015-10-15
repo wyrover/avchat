@@ -1,8 +1,8 @@
 #pragma once
 
-#include <QWidget>
-#include <QPixmap>
-#include "ui_imageviewer.h"
+#include <QtWidgets/QWidget>
+#include <QtGui/QPixmap>
+#include "ui_ImageViewer.h"
 
 class ImageViewer : public QWidget, public Ui::ImageViewer
 {

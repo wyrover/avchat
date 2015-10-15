@@ -6,13 +6,13 @@ namespace avc
 	class MessageError : public ChatError
 	{
 	public:
-		MessageError(int64_t id, const std::wstring& remoteName);
+		MessageError(int64_t id, const std::u16string& remoteName);
 		~MessageError();
 		int getId() const;
-		std::wstring getRemoteName() const;
+		std::u16string getRemoteName() const;
 	private:
 		int64_t id_;
-		std::wstring remoteName_;
+		std::u16string remoteName_;
 	};
 
 }

@@ -6,7 +6,7 @@ namespace avc
 	public:
 		RequestFilesInfo();
 		~RequestFilesInfo();
-		std::wstring fileName;
+		std::u16string fileName;
 		int fileSize;
 	};
 }

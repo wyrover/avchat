@@ -9,7 +9,7 @@ class OneToOneRoom : public DropShadowWidget, public Ui::OneToOneRoom
 {
 	Q_OBJECT
 public:
-	OneToOneRoom(avc::ChatClient* client, const std::wstring& remote);
+	OneToOneRoom(avc::ChatClient* client, const std::u16string& remote);
 	~OneToOneRoom();
 
 	void addMessage(const QString& username, time_t timestamp, const QString& message);
@@ -18,10 +18,10 @@ public:
 	void markSendError(int64_t id);
 
 protected:
-	virtual __override void paintEvent(QPaintEvent *event);
+    virtual  void paintEvent(QPaintEvent *event);
 
 private:
-	std::wstring remote_;
+	std::u16string remote_;
 	avc::ChatClient* client_;
 
 private:

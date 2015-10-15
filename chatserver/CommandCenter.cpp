@@ -11,6 +11,8 @@
 #include "Client.h"
 #include "unixserver.h"
 
+#define LOG_SERVER 1
+
 CommandCenter::CommandCenter(ChatServer* server)
 {
 	server_ = server;
@@ -24,7 +26,10 @@ int CommandCenter::fill(SOCKET socket, char* inBuf, int inLen)
 {
 	if (inLen == 0)
 		return 0;
+	mapMutex_.lock();
 	auto& cmdInfo = cmdMap_[socket];
+	mapMutex_.unlock();
+	std::lock_guard<std::recursive_mutex> locker(cmdInfo.fMutex);
 	if (cmdInfo.fNeededLen == -1) {
 		if (cmdInfo.fBuf.size() + inLen < 8) {
 			cmdInfo.fBuf.append(inBuf, inLen);
@@ -76,62 +81,62 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int
 	SockStream stream(buf, len);
 	int type = stream.getInt();
 	switch (type) {
-		case net::kCommandType_BuildPathAck:
-		{
-			onCmdBuildP2pPathAck(socket, stream);
-			break;
-		}
-		case net::kCommandType_BuildPath:
-		{
-			onCmdBuildP2pPath(socket, stream);
-			break;
-		}
-		case net::kCommandType_FileTransferRequestAck:
-		{
-			onCmdFileTransferRequestAck(socket, stream);
-			break;
-		}
-		case net::kCommandType_FileTransferRequest:
-		{
-			onCmdFileTransferRequest(socket, stream);
-			break;
-		}
-		case net::kCommandType_Login:
-		{
-			onCmdLogin(socket, stream);
-			break;
-		}
-		case net::kCommandType_Message:
-		{
+	case net::kCommandType_BuildPathAck:
+	{
+		onCmdBuildP2pPathAck(socket, stream);
+		break;
+	}
+	case net::kCommandType_BuildPath:
+	{
+		onCmdBuildP2pPath(socket, stream);
+		break;
+	}
+	case net::kCommandType_FileTransferRequestAck:
+	{
+		onCmdFileTransferRequestAck(socket, stream);
+		break;
+	}
+	case net::kCommandType_FileTransferRequest:
+	{
+		onCmdFileTransferRequest(socket, stream);
+		break;
+	}
+	case net::kCommandType_Login:
+	{
+		onCmdLogin(socket, stream);
+		break;
+	}
+	case net::kCommandType_Message:
+	{
 
-			onCmdMessage(socket, stream);
-			break;
-		}
-		case net::kCommandType_FileExists:
-		{
-			auto size = stream.getInt();
-			auto id = stream.getInt();
-			auto hashList = stream.getStringVec();
-			onCmdFileCheck(socket, id, hashList);
-			break;
-		}
-		case net::kCommandType_FileUpload:
-		{
-			onCmdFileUpload(socket, stream);
-			break;
-		}
-		case net::kCommandType_FileDownload:
-		{
-			onCmdFileDownload(socket, stream);
-			break;
-		}
-		case net::kCommandType_Logout:
-		{
-			onCmdLogout(socket, stream);
-			break;
-		}
-		default:
-			break;
+		onCmdMessage(socket, stream);
+		break;
+	}
+	case net::kCommandType_FileExists:
+	{
+		auto size = stream.getInt();
+		auto id = stream.getInt();
+		auto hashList = stream.getStringVec();
+		onCmdFileCheck(socket, id, hashList);
+		break;
+	}
+	case net::kCommandType_FileUpload:
+	{
+		onCmdFileUpload(socket, stream);
+		break;
+	}
+	case net::kCommandType_FileDownload:
+	{
+		onCmdFileDownload(socket, stream);
+		break;
+	}
+	case net::kCommandType_Logout:
+	{
+		onCmdLogout(socket, stream);
+		break;
+	}
+	default:
+		break;
 	}
 	return 0;
 }
@@ -150,9 +155,11 @@ void CommandCenter::onCmdLogin(SOCKET socket, SockStream& stream)
 		stream.writeInt(net::kCommandType_LoginAck);
 		stream.writeInt(0);
 		stream.writeInt(net::kLoginAck_Succeeded);
+		stream.writeInt(authType);
 		stream.writeString(user.getAuthKey());
 		stream.flushSize();
 		queueSendRequest(socket, stream);
+		TRACE_IF(LOG_SERVER, "send socket %d, login ack size %d\n", socket, stream.getSize());
 		updateUserlist();
 	} else {
 		SockStream stream;
@@ -199,7 +206,6 @@ HERRCODE CommandCenter::onCmdMessage(SOCKET socket, SockStream& is)
 	os.writeInt64(timestamp);
 	os.writeString(message);
 	os.flushSize();
-	//TRACE(L"%s send %s to %s\n", sender.c_str(), recver.c_str(), message.c_str());
 	if (recver == u"all") {
 		std::lock_guard<std::recursive_mutex> lock(clientMan_.fMutex);
 		for (auto& item : clientMan_.fClientMap) {
@@ -247,7 +253,11 @@ void CommandCenter::onCmdFileCheck(SOCKET socket, int id, const std::vector<std:
 
 void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
 {
-	send(socket, stream.getBuf(), stream.getSize(), 0);
+	TRACE("send socket %d stream size : %d, content: %s\n", socket, stream.getSize(), stream.toHexString().c_str());
+	auto size = send(socket, stream.getBuf(), stream.getSize(), 0);
+	if (size == -1) {
+		TRACE("send error %s\n", strerror(errno));
+	}
 }
 
 void CommandCenter::updateUserlist()
@@ -263,6 +273,7 @@ void CommandCenter::updateUserlist()
 	stream.flushSize();
 	for (auto& item : clientMan_.fClientMap) {
 		SOCKET s = item.second->getSocket();
+		TRACE_IF(LOG_SERVER, "send socket %d, userlist size %d\n", s, stream.getSize());
 		queueSendRequest(s, stream);
 	}
 }
@@ -432,7 +443,7 @@ HERRCODE CommandCenter::onCmdBuildP2pPathAck(SOCKET socket, SockStream& is)
 	} catch (...) {
 		return H_NETWORK_ERROR;
 	}
-	
+
 	if (type == net::kP2pAck_ListenTcp) { // sender listen tcp
 		SOCKET recvSock;
 		auto hr = clientMan_.getClientSocket(recver, &recvSock);

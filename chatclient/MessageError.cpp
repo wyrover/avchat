@@ -2,7 +2,7 @@
 #include "MessageError.h"
 namespace avc
 {
-	MessageError::MessageError(int64_t id, const std::wstring& remoteName)
+	MessageError::MessageError(int64_t id, const std::u16string& remoteName)
 		: ChatError(kChatError_Message), id_(id), remoteName_(remoteName)
 	{
 	}
@@ -16,7 +16,7 @@ namespace avc
 		return id_;
 	}
 
-	std::wstring MessageError::getRemoteName() const
+	std::u16string MessageError::getRemoteName() const
 	{
 		return remoteName_;
 	}

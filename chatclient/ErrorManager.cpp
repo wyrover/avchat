@@ -16,20 +16,20 @@ namespace avc
 	{
 		client_ = client;
 		quit_ = false;
-		hQuitEvent_ = CreateEvent(NULL, TRUE, FALSE, NULL);
+		//hQuitEvent_ = CreateEvent(NULL, TRUE, FALSE, NULL);
 	}
 
 	ErrorManager::~ErrorManager()
 	{
 	}
 
-	void ErrorManager::addMessageRequest(int64_t id, const std::wstring& remote, int64_t timestamp)
+	void ErrorManager::addMessageRequest(int64_t id, const std::u16string& remote, int64_t timestamp)
 	{
 		std::lock_guard<std::recursive_mutex> lock(mutex);
 		requests_.push_back(new MessageRequest(id, remote, timestamp));
 	}
 
-	void ErrorManager::confirmMessageRequest(int64_t id, const std::wstring& remote)
+	void ErrorManager::confirmMessageRequest(int64_t id, const std::u16string& remote)
 	{
 		std::lock_guard<std::recursive_mutex> lock(mutex);
 		auto iter = std::remove_if(requests_.begin(), requests_.end(), [&id, &remote](ChatRequest* request) {
@@ -65,35 +65,35 @@ namespace avc
 	void ErrorManager::threadFun()
 	{
 		HANDLE hTimer;
-		LARGE_INTEGER li;
-		hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
-		const int nTimerUnitsPerSecond = 10000000;
-		li.QuadPart = -(5 * nTimerUnitsPerSecond);
+   /*     LARGE_INTEGER li;*/
+		//hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+		//const int nTimerUnitsPerSecond = 10000000;
+		//li.QuadPart = -(5 * nTimerUnitsPerSecond);
 
-		HANDLE handles[] = { hTimer, hQuitEvent_ };
-		while (!quit_) {
-			SetWaitableTimer(hTimer, &li, 0,
-				NULL, NULL, FALSE);
-			auto result = WaitForMultipleObjects(2, handles, FALSE, INFINITE);
-			if (result == WAIT_OBJECT_0) {
-				client_->queueCheckTimeoutTask();
-			} else if (result == WAIT_OBJECT_0 + 1) {
-				break;
-			}
-		}
-		CloseHandle(hTimer);
+		//HANDLE handles[] = { hTimer, hQuitEvent_ };
+		//while (!quit_) {
+			//SetWaitableTimer(hTimer, &li, 0,
+				//NULL, NULL, FALSE);
+			//auto result = WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+			//if (result == WAIT_OBJECT_0) {
+				//client_->queueCheckTimeoutTask();
+			//} else if (result == WAIT_OBJECT_0 + 1) {
+				//break;
+			//}
+		//}
+		/*CloseHandle(hTimer);*/
 	}
 
 	void ErrorManager::quit()
 	{
 		quit_ = true;
-		SetEvent(hQuitEvent_);
+		//SetEvent(hQuitEvent_);
 	}
 
 	ChatError* ErrorManager::getChatError(ChatRequest* request, int64_t currTime)
 	{
 		switch (request->getType()) {
-			case kChatError_Message:{
+			case kChatRequest_Message:{
 				auto sendTime = request->getTimestamp();
 				if (currTime - sendTime > kTimeOut) {
 					auto msgRequest = dynamic_cast<MessageRequest*>(request);

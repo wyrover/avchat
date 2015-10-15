@@ -1,4 +1,6 @@
 #pragma once
+#include <map>
+#include <string>
 
 class FileManager
 {
@@ -7,5 +9,5 @@ public:
 	~FileManager();
 	
 private:
-	std::map<int, std::wstring> fileRequestMap_;
+	std::map<int, std::u16string> fileRequestMap_;
 };

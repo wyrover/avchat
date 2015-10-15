@@ -1,6 +1,6 @@
-#include "QImage.h"
-#include "QPixmap.h"
-#include "QLabel.h"
+#include <QImage>
+#include <QPixmap>
+#include <QLabel>
 
 class PictureLabel : public QLabel
 {

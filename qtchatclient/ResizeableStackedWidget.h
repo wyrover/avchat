@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qstackedwidget.h"
+#include "QtWidgets/qstackedwidget.h"
 class ResizeableStackedWidget : public QStackedWidget
 {
 	Q_OBJECT

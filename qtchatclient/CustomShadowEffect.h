@@ -1,6 +1,6 @@
 #pragma once
-#include <QGraphicsDropShadowEffect>
-#include <QGraphicsEffect>
+#include <QtWidgets/QGraphicsDropShadowEffect>
+#include <QtWidgets/QGraphicsEffect>
 
 class CustomShadowEffect : public QGraphicsEffect
 {

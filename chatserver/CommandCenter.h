@@ -2,6 +2,7 @@
 
 #include "ClientManager.h"
 #include "FileMan.h"
+#include <mutex>
 class ChatServer;
 class ChatCommand;
 class SockStream;
@@ -13,6 +14,7 @@ struct CommandInfo
 	}
 	buffer fBuf;
 	int fNeededLen;
+	std::recursive_mutex fMutex;
 	int fCmdLen;
 };
 
@@ -45,5 +47,6 @@ private:
 	ClientManager clientMan_;
 	FileMan fileMan_;
 	ChatServer* server_;
+	std::mutex mapMutex_;
 };
 

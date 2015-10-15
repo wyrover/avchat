@@ -1,4 +1,4 @@
-#include "customshadoweffect.h"
+#include "CustomShadowEffect.h"
 #include <QPainter>
 // #include <QGraphicsEffect>
 

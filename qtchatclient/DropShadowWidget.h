@@ -12,8 +12,8 @@ Qt分享、交流群：26197884
 #ifndef DROPSHADOWWIDGET_H
 #define DROPSHADOWWIDGET_H
 
-#include <QDialog>
-#include <QWidget>
+#include <QtWidgets/QDialog>
+#include <QtWidgets/QWidget>
 #include <QPainter>
 #include <QMouseEvent>
 #include <qmath.h>

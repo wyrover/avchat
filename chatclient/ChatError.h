@@ -4,6 +4,7 @@ namespace avc
 {
 	enum ChatErrorType {
 		kChatError_Message,
+		kChatError_Login,
 	};
 
 	class ChatError

@@ -224,7 +224,7 @@
   <customwidget>
    <class>TitleBar</class>
    <extends>QWidget</extends>
-   <header>titlebar.h</header>
+   <header>TitleBar.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

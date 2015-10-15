@@ -1,10 +1,7 @@
-// stdafx.h : include file for standard system include files,
-// or project specific include files that are used frequently, but
-// are changed infrequently
-//
+// stdafx.h : include file for standard system include files, // or project specific include files that are used frequently, but // are changed infrequently //
 
 #pragma once
-
+#if _WIN32
 #include <stdio.h>
 #include <tchar.h>
 #include <thread>
@@ -21,7 +18,7 @@
 #include <iostream>     // console output
 #include <sstream>      // std::ostringstream
 #include <stdexcept>    // std::runtime_error
-#include <string>       // std::wstring
+#include <string>       // std::u16string
 #include <vector>       // std::vector
 
 // TODO: reference additional headers your program requires here
@@ -42,4 +39,14 @@
 
 #pragma comment(lib, "bcrypt.lib")
 
+#else
+
 #include "../common/buffer.h"
+typedef int SOCKET;
+typedef int HANDLE;
+typedef int DWORD;
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
+
+
+#endif

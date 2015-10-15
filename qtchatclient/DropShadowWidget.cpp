@@ -1,4 +1,4 @@
-#include "dropshadowwidget.h"
+#include "DropShadowWidget.h"
 
 DropShadowWidget::DropShadowWidget(QWidget *parent)
 	: QDialog(parent)
@@ -35,7 +35,7 @@ void DropShadowWidget::paintEvent(QPaintEvent *event)
 		painter.setPen(color);
 		painter.drawPath(path);
 	}
-	__super::paintEvent(event);
+    QDialog::paintEvent(event);
 }
 
 void DropShadowWidget::mousePressEvent(QMouseEvent *event)

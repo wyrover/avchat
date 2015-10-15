@@ -1,5 +1,4 @@
 #include "ImageLoader.h"
-#include "webfile.h"
 ImageLoader::ImageLoader()
 {
 }

@@ -27,6 +27,7 @@ public:
 	int writeBuffer(buffer& buf);
 	int writeStringVec(const std::vector<std::u16string>& strVec);
 	int writeUtf8StringVec(const std::vector<std::string>& strVec);
+	int writePtr(void* ptr);
 	void flushSize();
 
 	short getShort();
@@ -37,6 +38,7 @@ public:
 	double getDouble();
 	float getFloat();
 	bool getBool();
+	void* getPtr();
 	void getBuffer(buffer& buf);
 	std::vector<std::u16string> getStringVec();
 	std::vector<std::string> getUtf8StringVec();
@@ -45,6 +47,8 @@ public:
 	char* getBuf();
 	char* getCurrPtr();
 	size_t getSize();
+
+	std::string toHexString() const;
 
 private:
 	int write(char* value, size_t len);

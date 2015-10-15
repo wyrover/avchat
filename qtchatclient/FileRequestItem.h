@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui_filetransitem.h"
-#include <QWidget>
+#include <QtWidgets/QWidget>
 
 class FileRequestItem : public QWidget, public Ui::fileTransItem
 {

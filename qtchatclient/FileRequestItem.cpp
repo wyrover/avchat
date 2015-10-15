@@ -25,7 +25,7 @@ void FileRequestItem::setSendInfo(const QString& filePath, time_t timestamp)
 	QFileInfo fi(filePath);
 	loadFileTypeIcon(filePath, fi.suffix());
 	nameLabel->setText(fi.fileName());
-	sizeLabel->setText(QString::fromStdWString(FileUtils::FileSizeToReadable(fi.size())));
+    sizeLabel->setText(QString::fromStdString(FileUtils::FileSizeToReadable(fi.size())));
 	button1->setVisible(false);
 	button2->setVisible(false);
 	button3->setText(tr("Cancel"));
@@ -41,7 +41,7 @@ void FileRequestItem::setRecvInfo(const QString& filePath, int fileSize, time_t 
 	QFileInfo fi(filePath);
 	loadFileTypeIcon(filePath, fi.suffix());
 	nameLabel->setText(fi.fileName());
-	sizeLabel->setText(QString::fromStdWString(FileUtils::FileSizeToReadable(fi.size())));
+    sizeLabel->setText(QString::fromStdString(FileUtils::FileSizeToReadable(fi.size())));
 	button1->setText(tr("Recv"));
 	button2->setText(tr("Save as"));
 	button3->setText(tr("Cancel"));

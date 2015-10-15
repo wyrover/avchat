@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -111,4 +112,23 @@ std::string FileUtils::FileSizeToReadable(int fileSize)
 	}
 	sprintf(buf, "%.*f %s", i, size, units[i]);
 	return buf;
+}
+
+void FileUtils::MkDirs(const std::string& filePath)
+{
+	char tmp[PATH_MAX];
+	char *p = NULL;
+	size_t len;
+
+	snprintf(tmp, sizeof(tmp),"%s",filePath.c_str());
+	len = strlen(tmp);
+	if(tmp[len - 1] == '/')
+		tmp[len - 1] = 0;
+	for(p = tmp + 1; *p; p++)
+		if(*p == '/') {
+			*p = 0;
+			mkdir(tmp, S_IRWXU);
+			*p = '/';
+		}
+	mkdir(tmp, S_IRWXU);
 }

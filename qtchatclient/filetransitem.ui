@@ -150,7 +150,7 @@ height: 6px;
   <customwidget>
    <class>PictureLabel</class>
    <extends>QLabel</extends>
-   <header>picturelabel.h</header>
+   <header>PictureLabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

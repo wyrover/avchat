@@ -1,4 +1,8 @@
 #pragma once
+
+#include <string>
+#include <vector>
+
 namespace avc
 {
 	class ImageMessageForSend
@@ -6,20 +10,20 @@ namespace avc
 	public:
 		ImageMessageForSend();
 		~ImageMessageForSend();
-		void setRawMessage(const std::wstring& message, const std::wstring& recver, time_t timestamp);
-		std::wstring getRawMessage();
+		void setRawMessage(const std::u16string& message, const std::u16string& recver, time_t timestamp);
+		std::u16string getRawMessage();
 		time_t getTimeStamp();
-		std::wstring getRecver();
-		std::vector<std::wstring> getHashList();
-		std::vector<std::wstring> getUploadFileList(const std::vector<std::wstring>& checkList);
-		std::wstring translateMessage(const std::vector<std::wstring>& uploadList);
+		std::u16string getRecver();
+		std::vector<std::u16string> getHashList();
+		std::vector<std::u16string> getUploadFileList(const std::vector<std::u16string>& checkList);
+		std::u16string translateMessage(const std::vector<std::u16string>& uploadList);
 
 	private:
-		std::wstring recver_;
+		std::u16string recver_;
 		time_t timestamp_;
-		std::wstring rawMessage_;
-		std::vector<std::wstring> fileList_;
-		std::vector<std::wstring> hashList_;
-		std::vector<std::wstring> urlList_;
+		std::u16string rawMessage_;
+		std::vector<std::u16string> fileList_;
+		std::vector<std::u16string> hashList_;
+		std::vector<std::u16string> urlList_;
 	};
 }

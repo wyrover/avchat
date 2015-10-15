@@ -1,7 +1,7 @@
-#include "stdafx.h"
-#include "unixserver.h"
-#include "Utils.h"
+#include <cstdio>
+
 #include "../common/errcode.h"
+#include "unixserver.h"
 
 int main(int argc, char** argv)
 {

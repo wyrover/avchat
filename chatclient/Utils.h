@@ -1,4 +1,9 @@
 #pragma once
+
+#include <string>
+#include <map>
+#include <vector>
+
 namespace avc
 {
 	class Utils
@@ -6,11 +11,11 @@ namespace avc
 	public:
 		Utils();
 		~Utils();
-		static int XmlToImageList(const std::wstring& xml, std::vector<std::wstring>* fileList);
-		static int XmlTranslateMessage(const std::wstring& xmlMessge,
-			const std::map<std::wstring, std::wstring>& fileUrlMap,
-			std::wstring* message);
-		static int XmlMessageToQtMessage(const std::wstring& xmlMessge, std::vector<std::wstring>* imageList,
-			std::wstring* message);
+		static int XmlToImageList(const std::u16string& xml, std::vector<std::u16string>* fileList);
+		static int XmlTranslateMessage(const std::u16string& xmlMessge,
+			const std::map<std::u16string, std::u16string>& fileUrlMap,
+			std::u16string* message);
+		static int XmlMessageToQtMessage(const std::u16string& xmlMessge, std::vector<std::u16string>* imageList,
+			std::u16string* message);
 	};
 }

@@ -1,8 +1,9 @@
 #include "stdafx.h"
 #include "../common/errcode.h"
 #include "../common/FileUtils.h"
-#include "../common/StringUtils.h"
 #include "FileMan.h"
+
+#include "../common/StringUtils.h"
 #include "Utils.h"
 #include "ServerContext.h"
 #include "DBContext.h"
@@ -22,7 +23,7 @@ HERRCODE FileMan::addFile(buffer& buf, const std::u16string& fileExt, std::u16st
 	if (!Utils::IsImageExt(fileExt))
 		return H_INVALID_FORMAT;
 	std::string filePath = ServerContext::getInstance()->getImageDir();
-	auto fileName = StringUtils::Utf16ToUtf8String(Utils::GetRandomFileName() + u"." + fileExt);
+	auto fileName = su::u16to8(Utils::GetRandomFileName() + u"." + fileExt);
 	filePath += fileName;
 	if (!FileUtils::FnCreateFile(filePath, buf)) {
 		return H_FAILED;
@@ -32,7 +33,7 @@ HERRCODE FileMan::addFile(buffer& buf, const std::u16string& fileExt, std::u16st
 		return H_FAILED;
 	auto hr = ServerContext::getInstance()->getDBContext()->addFile(hashId, fileName);
 	if (hr == H_OK) {
-		*url = StringUtils::Utf8ToUtf16String(fileName);
+		*url = su::u8to16(fileName);
 	}
 	return hr;
 }
@@ -40,15 +41,15 @@ HERRCODE FileMan::addFile(buffer& buf, const std::u16string& fileExt, std::u16st
 HERRCODE FileMan::getFileUrl(const std::u16string& hashId, std::u16string* url)
 {
 	std::string utf8Url;
-	auto rc = ServerContext::getInstance()->getDBContext()->getFileUrl(StringUtils::Utf16ToUtf8String(hashId), &utf8Url);
-	*url = StringUtils::Utf8ToUtf16String(utf8Url);
+	auto rc = ServerContext::getInstance()->getDBContext()->getFileUrl(su::u16to8(hashId), &utf8Url);
+	*url = su::u8to16(utf8Url);
 	return rc;
 }
 
 HERRCODE FileMan::getFile(const std::u16string& url, buffer& outBuf)
 {
 	std::string filePath = ServerContext::getInstance()->getImageDir();
-	filePath += StringUtils::Utf16ToUtf8String(url);
+	filePath += su::u16to8(url);
 	if (!FileUtils::ReadAll(filePath, outBuf))
 		return H_FAILED;
 	return H_OK;

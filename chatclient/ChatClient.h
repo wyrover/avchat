@@ -5,7 +5,12 @@
 #include <atomic>
 #include <vector>
 #include <thread>
-#include <Windows.h>
+#include <sys/epoll.h>
+typedef int SOCKET;
+typedef int HANDLE;
+typedef int DWORD;
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
 #include "../common/errcode.h"
 #include "CommandCenter.h"
 #include "ErrorManager.h"
@@ -13,67 +18,76 @@
 #include "RequestFilesInfo.h"
 #include "TcpPeerManager.h"
 
-class ChatOverlappedData;
-
 namespace avc
 {
+	struct LoginRequest
+	{
+		std::u16string username;
+		std::u16string password;
+		int type;
+	};
+
+	struct LoginResult
+	{
+		bool succeeded;
+		int type;
+		std::u16string authKey;
+	};
+
 	class ChatClient
 	{
-	public:
-		const static int kServerKey = 233;
-		const static int kPeerListenKey = 234;
-		const static int kPeerConnKey = 235;
+		public:
+			ChatClient();
+			~ChatClient();
+			HERRCODE init(const std::u16string& serverAddr, int port);
+			HERRCODE login(const std::u16string& username, const std::u16string& password);
+			HERRCODE autoLogin(const std::u16string& username, const std::u16string& token);
+			HERRCODE sendMessage(const std::u16string& username, const std::u16string& message, time_t timestamp);
+			HERRCODE sendFileTransferRequest(const std::u16string& username, const RequestFilesInfo& fileInfo, time_t timestamp);
+			HERRCODE confirmFileTransferRequest(const std::u16string& username, time_t timestamp, bool recv, const std::u16string& savePath);
+			HERRCODE logout();
 
-	public:
-		ChatClient();
-		~ChatClient();
-		HERRCODE init(const std::wstring& serverAddr, int port);
-		HERRCODE login(const std::wstring& username, const std::wstring& password);
-		HERRCODE autoLogin(const std::wstring& username, const std::wstring& token);
-		HERRCODE sendMessage(const std::wstring& username, const std::wstring& message, time_t timestamp);
-		HERRCODE sendFileTransferRequest(const std::wstring& username, const RequestFilesInfo& fileInfo, time_t timestamp);
-		HERRCODE confirmFileTransferRequest(const std::wstring& username, time_t timestamp, bool recv, const std::wstring& savePath);
-		HERRCODE logout();
+			ErrorManager& messageMan();
+			TcpPeerManager& peerMan();
+			IChatClientController* controller();
 
-		ErrorManager& messageMan();
-		TcpPeerManager& peerMan();
-		IChatClientController* controller();
+			void queueCheckTimeoutTask();
+			void setImageCacheDir(const std::u16string& filePath);
+			std::u16string getImageDir();
+			std::vector<std::u16string> getUserList();
+			void setController(IChatClientController* controller);
+			std::u16string getEmail();
+			void start();
 
-		void onRecv(ChatOverlappedData* ol, DWORD bytes, ULONG_PTR key);
-		HANDLE getHandleComp();
-		void queueCheckTimeoutTask();
-		void setImageCacheDir(const std::wstring& filePath);
-		std::wstring getImageDir();
-		std::vector<std::wstring> getUserList();
-		void setController(IChatClientController* controller);
-		std::wstring getEmail();
-		void start();
+		private:
+			HERRCODE loginImpl(int type, const std::u16string& username, const std::u16string& credential);
+			HERRCODE handleConnect();
+			void queueSendRequest(SOCKET socket, SockStream& stream);
+			void threadFun(bool initRecv);
+			void quit(bool wait);
+			HERRCODE initSock();
 
-	private:
-		HERRCODE loginImpl(int type, const std::wstring& username, const std::wstring& credential);
-		bool queueCompletionStatus();
-		void queueSendRequest(SOCKET socket, SockStream& stream);
-		void threadFun(bool initRecv);
-		void quit(bool wait);
-		HERRCODE initSocks(SOCKET sock);
+		private:
+			std::vector<std::thread> threads_;
+			std::atomic<bool> quit_;
+			CommandCenter cmdCenter_;
+			TcpPeerManager peerMan_;
 
-	private:
-		HANDLE hComp_;
-		std::vector<std::thread> threads_;
-		std::atomic<bool> quit_;
-		CommandCenter cmdCenter_;
-		TcpPeerManager peerMan_;
+			std::u16string email_;
+			std::u16string authKey_;
+			std::u16string imageCache_;
 
-		std::wstring email_;
-		std::wstring authKey_;
-		std::wstring imageCache_;
+			SOCKET sock_;
+			SOCKET listenSock_;
+			std::vector<epoll_event> events_;
+			std::atomic<int> acceptedRequest_;
 
-		SOCKET sock_;
-		int serverPort_;
-		std::wstring serverAddr_;
+			int epfd_;
+			int serverPort_;
+			std::u16string serverAddr_;
+			LoginRequest loginRequest_;
 
-
-		IChatClientController* controller_;
-		ErrorManager msgMan_;
+			IChatClientController* controller_;
+			ErrorManager msgMan_;
 	};
 }

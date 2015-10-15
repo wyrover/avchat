@@ -5,7 +5,6 @@
 class TextViewer : public QTextBrowser
 {
 	Q_OBJECT
-
 public:
 	TextViewer(QWidget* parent = 0);
 	~TextViewer();
@@ -16,7 +15,6 @@ protected:
 	virtual void paintEvent(QPaintEvent *e);
 	virtual void mouseDoubleClickEvent(QMouseEvent *event);
 	virtual void contextMenuEvent(QContextMenuEvent * event);
-
 private:
 	void addPicture(QTextCursor& c, const QString& picUrl);
 	void addBubbleTextFrame(const QString& username, const QString& message, bool self, const QString& imageDir, time_t timestamp);

@@ -1,30 +1,29 @@
 #include "qtchatclient.h"
 #include <QStringList>
-#include <ATLComTime.h>
 #include <QTextStream>
 #include <QScrollBar>
-#include <QShortCut>
 #include <QFileDialog>
 #include <QDebug>
 #include <QMenu>
 #include <QGraphicsDropShadowEffect>
 #include <QSizeGrip>
+#include <qshortcut.h>
 #include "TitleBar.h"
 #include "OneToOneRoom.h"
 #include "CustomShadowEffect.h"
 #include "Utils.h"
-#include "../chatclient/chaterror.h"
+#include "ChatClientController.h"
 #include "../chatclient/MessageError.h"
 
 qtchatclient::qtchatclient(avc::ChatClient* client, QWidget *parent)
 	: DropShadowWidget(parent), client_(client)
 {
-	setupUi(this);
+    setupUi(this);
 	rightLayout->addWidget(new QSizeGrip(this), 0, Qt::AlignBottom | Qt::AlignRight);
 	userListView->setEditTriggers(QAbstractItemView::NoEditTriggers);
 	userListView->setFrameStyle(QFrame::NoFrame);
 	textBrowser->setFrameStyle(QFrame::NoFrame);
-	textEdit->setFrameStyle(QFrame::NoFrame);
+    textEdit->setFrameStyle(QFrame::NoFrame);
 
 	QFile file(":/Resources/scrollbar.qss");
 	file.open(QFile::ReadOnly | QFile::Text);
@@ -36,46 +35,47 @@ qtchatclient::qtchatclient(avc::ChatClient* client, QWidget *parent)
 
 	addPicBtn->setIcon(QIcon(":/Resources/image.png"));
 	addVoiceBtn->setIcon(QIcon(":/Resources/voice.png"));
-	titleBar->setTitle(QString("%1@public chat room").arg(QString::fromStdWString(client_->getEmail())));
+	titleBar->setTitle(QString("%1@public chat room").arg(QString::fromStdU16String(client_->getEmail())));
 	userListView->setModel(&userListModel_);
 	textEdit->setFocus();
 
 	auto shortcut = new QShortcut(QKeySequence(Qt::CTRL, Qt::Key_T), this);
 	shortcut->setAutoRepeat(false);
-	connect(shortcut, SIGNAL(activated()), this, SLOT(keke()));
-	//connect(shortcut, SIGNAL(activatedAmbiguously()), this, SLOT(onSendClicked()));
+    //connect(shortcut, SIGNAL(activated()), this, SLOT(keke()));
+    //connect(shortcut, SIGNAL(activatedAmbiguously()), this, SLOT(onSendClicked()));
 
 	connect(userListView, SIGNAL(doubleClicked(const QModelIndex&)),
 		this, SLOT(onUsernameDoubleClicked(const QModelIndex&)));
 	connect(this, SIGNAL(uiNewMessage(const QString&, const QString&, qint64, const QString&)),
 		this, SLOT(onUiNewMessage(const QString&, const QString&, qint64, const QString&)), Qt::QueuedConnection);
-	connect(this, SIGNAL(uiError(avc::ChatError* error)),
-		this, SLOT(onUiError(avc::ChatError* error)), Qt::QueuedConnection);
+    connect(this, SIGNAL(uiChatError(avc::ChatError*)),
+        this, SLOT(onUiChatError(avc::ChatError*)), Qt::QueuedConnection);
 	connect(this, SIGNAL(uiFileTransferRequest(const QString&, qint64, bool, const QString& , int)),
 		this, SLOT(onUiFileTransferRequest(const QString&, qint64, bool, const QString& , int)));
 	connect(pushButton, SIGNAL(clicked()), this, SLOT(onSendClicked()));
 	connect(addPicBtn, SIGNAL(clicked()), this, SLOT(onAddPicClicked()));
 	connect(closeButton, SIGNAL(clicked()), this, SLOT(onCloseButtonClicked()));
 
+    auto controller =  dynamic_cast<ChatClientController*>(client_->controller());
+    controller->setMainController(this);
+    onNewUserList();
 	//createTray();
-	client_->setController(this);
-	client_->start();
 }
 
 qtchatclient::~qtchatclient()
 {
 }
 
-void qtchatclient::onNewMessage(const std::wstring& sender, const std::wstring& username,
-	int64_t timestamp, const std::wstring& message)
+void qtchatclient::onNewMessage(const std::u16string& sender, const std::u16string& username,
+	int64_t timestamp, const std::u16string& message)
 {
-	emit uiNewMessage(QString::fromStdWString(sender), QString::fromStdWString(username),
-		timestamp, QString::fromStdWString(message));
+	emit uiNewMessage(QString::fromStdU16String(sender), QString::fromStdU16String(username),
+		timestamp, QString::fromStdU16String(message));
 }
 
-__override void qtchatclient::onChatError(avc::ChatError* error)
+ void qtchatclient::onChatError(avc::ChatError* error)
 {
-	emit uiError(error);
+    emit uiChatError(error);
 }
 
 void qtchatclient::onNewUserList()
@@ -83,20 +83,20 @@ void qtchatclient::onNewUserList()
 	auto userlist = client_->getUserList();
 	QStringList list;
 	for (auto name : userlist) {
-		list << QString::fromStdWString(name);
+		list << QString::fromStdU16String(name);
 	}
 	userListModel_.setStringList(list);
 }
 
 void qtchatclient::onUiNewMessage(const QString& sender, const QString& recver, qint64 timestamp, const QString& message)
 {
-	if (sender == QString::fromStdWString(client_->getEmail()))
+	if (sender == QString::fromStdU16String(client_->getEmail()))
 		return;
 
 	if (recver == "all") {
 		addMessage(sender, timestamp, message);
 	} else {
-		auto room = getRoom(sender.toStdWString());
+		auto room = getRoom(sender.toStdU16String());
 		room->show();
 		room->addMessage(sender, timestamp, message);
 	}
@@ -105,22 +105,22 @@ void qtchatclient::onUiNewMessage(const QString& sender, const QString& recver, 
 void qtchatclient::onSendClicked()
 {	
 	auto html = textEdit->toHtml();
-	auto text = textEdit->toPlainText().toStdWString();
+	auto text = textEdit->toPlainText().toStdU16String();
 	auto message = Utils::textEditToMessageText(textEdit);
 	auto timestamp = time(NULL);
-	client_->sendMessage(L"all", message, timestamp);
-	addMessage(QString::fromStdWString(client_->getEmail()), timestamp, QString::fromStdWString(message));
+    client_->sendMessage(u"all", message, timestamp);
+	addMessage(QString::fromStdU16String(client_->getEmail()), timestamp, QString::fromStdU16String(message));
 	textEdit->clear();
 }
 
 void qtchatclient::onUsernameDoubleClicked(const QModelIndex& index)
 {
 	auto data = userListModel_.data(index, Qt::DisplayRole).toString();
-	auto room = getRoom(data.toStdWString());
+	auto room = getRoom(data.toStdU16String());
 	room->show();
 }	
 
-OneToOneRoom* qtchatclient::getRoom(const std::wstring& username)
+OneToOneRoom* qtchatclient::getRoom(const std::u16string& username)
 {
 	if (!oneMap_.count(username)) {
 		auto oneRoom = new OneToOneRoom(client_,username);
@@ -129,16 +129,16 @@ OneToOneRoom* qtchatclient::getRoom(const std::wstring& username)
 	return oneMap_[username];
 }
 
-__override void qtchatclient::onFileRequest(const std::wstring& sender, int64_t timestamp, bool isFolder,
-	const std::wstring& filename, int64_t fileSize)
+ void qtchatclient::onFileRequest(const std::u16string& sender, int64_t timestamp, bool isFolder,
+	const std::u16string& filename, int64_t fileSize)
 {
-	emit uiFileTransferRequest(QString::fromStdWString(sender), timestamp, isFolder, QString::fromStdWString(filename), (int)fileSize);
+	emit uiFileTransferRequest(QString::fromStdU16String(sender), timestamp, isFolder, QString::fromStdU16String(filename), (int)fileSize);
 }
 
 void qtchatclient::addMessage(const QString& username, time_t timestamp, const QString& message)
 {
-	textBrowser->addMessage(username, username.toStdWString() == client_->getEmail(), timestamp,
-		message, QString::fromStdWString(client_->getImageDir()));
+	textBrowser->addMessage(username, username.toStdU16String() == client_->getEmail(), timestamp,
+		message, QString::fromStdU16String(client_->getImageDir()));
 }
 
 void qtchatclient::onAddPicClicked()
@@ -176,7 +176,7 @@ void qtchatclient::createTrayIcon()
 	trayIcon_->setContextMenu(trayIconMenu_);
 }
 
-__override void qtchatclient::closeEvent(QCloseEvent* event)
+ void qtchatclient::closeEvent(QCloseEvent* event)
 {
 	//if (trayIcon_->isVisible()) {
 	//	hide();
@@ -187,7 +187,7 @@ __override void qtchatclient::closeEvent(QCloseEvent* event)
 
 void qtchatclient::paintEvent(QPaintEvent *event)
 {
-	__super::paintEvent(event);
+    QDialog::paintEvent(event);
 	QPainter painter(this);
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(QBrush(QColor(0xEBF2F9)));
@@ -202,24 +202,24 @@ void qtchatclient::createTray()
 	trayIcon_->show();
 }
 
-void qtchatclient::onUiError(avc::ChatError* error)
+void qtchatclient::onUiChatError(avc::ChatError* error)
 {
-	auto type = error->getType();
-	switch (type) {
-		case avc::kChatError_Message: {
-			auto msgError = dynamic_cast<avc::MessageError*>(error);
-			auto name = msgError->getRemoteName();
-			if (name == L"all")
-				textBrowser->markSendError(msgError->getId());
-			else {
-				auto room = getRoom(name);
-			}
-		}
-			break;
-		default:
-			break;
-	}
-	delete error;
+        auto type = error->getType();
+        switch (type) {
+        case avc::kChatError_Message: {
+                auto msgError = dynamic_cast<avc::MessageError*>(error);
+                auto name = msgError->getRemoteName();
+                if (name == u"all")
+                        textBrowser->markSendError(msgError->getId());
+                else {
+                        auto room = getRoom(name);
+                }
+        }
+                break;
+        default:
+                break;
+        }
+        delete error;
 }
 
 void qtchatclient::onCloseButtonClicked()
@@ -230,12 +230,12 @@ void qtchatclient::onCloseButtonClicked()
 void qtchatclient::onUiFileTransferRequest(const QString& sender, qint64 timestamp,
 	bool isFolder, const QString& filename, int fileSize)
 {
-	auto room = getRoom(sender.toStdWString());
+	auto room = getRoom(sender.toStdU16String());
 	room->addFileRequest(sender, timestamp, false, filename, fileSize);
 	room->show();
 }
 
-__override void qtchatclient::onFileRequestAck(const std::wstring& sender, int64_t timestamp, bool allow)
+ void qtchatclient::onFileRequestAck(const std::u16string& sender, int64_t timestamp, bool allow)
 {
 
 }

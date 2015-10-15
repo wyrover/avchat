@@ -1,8 +1,9 @@
 #include "stdafx.h"
 #include "../common/errcode.h"
-#include "../common/StringUtils.h"
 #include "../common/NetConstants.h"
 #include "User.h"
+
+#include "../common/StringUtils.h"
 #include "Utils.h"
 #include "ServerContext.h"
 #include "DBContext.h"
@@ -20,7 +21,7 @@ HERRCODE User::login(int authType, const std::u16string& email, const std::u16st
 	auto loginStmt = ServerContext::getInstance()->getDBContext()->getLoginStmt();
 	auto statusStmt = ServerContext::getInstance()->getDBContext()->getStatusStmt();
 	try {
-		auto utf8email = StringUtils::Utf16ToUtf8String(email);
+		auto utf8email = su::u16to8(email);
 		loginStmt->setString(1, utf8email);
 		std::unique_ptr<sql::ResultSet> res(loginStmt->executeQuery());
 		if (res->rowsCount() != 1) {
@@ -29,18 +30,18 @@ HERRCODE User::login(int authType, const std::u16string& email, const std::u16st
 		while (res->next()) {
 			if (authType == net::kLoginType_Normal) {
 				auto password_hash = res->getString("password_hash");
-				if (!Utils::ValidatePasswordHash(StringUtils::Utf16ToUtf8String(credential), password_hash)) {
+				if (!Utils::ValidatePasswordHash(su::u16to8(credential), password_hash)) {
 					return H_AUTH_FAILED;
 				}
 			} else if (authType == net::kLoginType_Auto) {
 				auto token = res->getString("access_token");
-				if (token != StringUtils::Utf16ToUtf8String(credential)) {
+				if (token != su::u16to8(credential)) {
 					return H_AUTH_FAILED;
 				}
 			}
 			id_ = res->getInt("id");
-			username_ = StringUtils::Utf8ToUtf16String(res->getString("username"));
-			authKey_ = StringUtils::Utf8ToUtf16String(res->getString("auth_key"));
+			username_ = su::u8to16(res->getString("username"));
+			authKey_ = su::u8to16(res->getString("auth_key"));
 		}
 		statusStmt->setInt(1, kStatus_Online);
 		statusStmt->setString(2, utf8email);

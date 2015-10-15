@@ -1,23 +1,37 @@
 #include "stdafx.h"
-#include "StringUtils.h"
+#include <sstream>
+#include <iomanip>
 #include <boost/locale/encoding_utf.hpp>
+#include "StringUtils.h"
 
-StringUtils::StringUtils()
+su::su()
 {
 
 }
 
-StringUtils::~StringUtils()
+su::~su()
 {
 
 }
 
-std::string StringUtils::Utf16ToUtf8String(const std::u16string& str)
+std::string su::u16to8(const std::u16string& str)
 {
-	boost::locale::conv::utf_to_utf<char>(str.c_str(), str.c_str() + str.length());
+	return boost::locale::conv::utf_to_utf<char>(str);
 }
 
-std::u16string StringUtils::Utf8ToUtf16String(const std::string& str)
+std::u16string su::u8to16(const std::string& str)
 {
-	boost::locale::conv::utf_to_utf<char16_t>(str.c_str(), str.c_str() + str.length());
+	return boost::locale::conv::utf_to_utf<char16_t>(str);
 }
+
+std::string su::buf2string(unsigned char* buf, int len)
+{
+	std::stringstream sb;
+	sb.setf(std::ios_base::hex, std::ios_base::basefield);
+	sb.fill('0');
+	for (int i = 0; i < len; ++i) {
+		sb << std::setw(2) << (int)buf[i];
+	}
+	return sb.str();
+}
+

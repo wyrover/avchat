@@ -371,23 +371,23 @@ background-color:qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba
   <customwidget>
    <class>TitleBar</class>
    <extends>QWidget</extends>
-   <header>titlebar.h</header>
+   <header>TitleBar.h</header>
   </customwidget>
   <customwidget>
    <class>TextViewer</class>
    <extends>QWidget</extends>
-   <header>textviewer.h</header>
+   <header>TextViewer.h</header>
   </customwidget>
   <customwidget>
    <class>FileRequestWidget</class>
    <extends>QWidget</extends>
-   <header>filerequestwidget.h</header>
+   <header>FileRequestWidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>ResizeableStackedWidget</class>
    <extends>QStackedWidget</extends>
-   <header>resizeablestackedwidget.h</header>
+   <header>ResizeableStackedWidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

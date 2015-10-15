@@ -2,6 +2,7 @@
 #include "ImageMessageForRecv.h"
 #include "../common/FileUtils.h"
 #include "../common/SockStream.h"
+#include "../common/StringUtils.h"
 #include "Utils.h"
 namespace avc
 {
@@ -14,8 +15,8 @@ namespace avc
 	{
 	}
 
-	void ImageMessageForRecv::setRawMessage(const std::wstring& message, const std::wstring& sender,
-		const std::wstring& recver, time_t timestamp)
+	void ImageMessageForRecv::setRawMessage(const std::u16string& message, const std::u16string& sender,
+		const std::u16string& recver, time_t timestamp)
 	{
 		rawMessage_ = message;
 		sender_ = sender;
@@ -23,18 +24,19 @@ namespace avc
 		timestamp_ = timestamp;
 	}
 
-	std::wstring ImageMessageForRecv::getRawMessage()
+	std::u16string ImageMessageForRecv::getRawMessage()
 	{
 		return rawMessage_;
 	}
 
-	std::vector<std::wstring> ImageMessageForRecv::getNeedDownloadFileList(const std::wstring& imageDir)
+	std::vector<std::u16string> ImageMessageForRecv::getNeedDownloadFileList(const std::u16string& imageDir)
 	{
-		std::vector<std::wstring> needList;
+		std::vector<std::u16string> needList;
 		avc::Utils::XmlToImageList(rawMessage_, &fileList_);
 		for (auto filePath : fileList_) {
-			std::wstring filename = PathFindFileName(filePath.c_str());
-			if (!FileUtils::FileExists((imageDir + filename).c_str())) {
+			auto pos = filePath.rfind(u'/');
+			auto filename = filePath.substr(pos, filePath.length() - pos);
+			if (!FileUtils::FileExists(su::u16to8(imageDir + filename).c_str())) {
 				needList.push_back(filePath);
 			}
 		}
@@ -46,23 +48,23 @@ namespace avc
 		return timestamp_;
 	}
 
-	std::wstring ImageMessageForRecv::getRecver()
+	std::u16string ImageMessageForRecv::getRecver()
 	{
 		return recver_;
 	}
 
-	void ImageMessageForRecv::writeFile(const std::wstring& imageDir, SockStream& stream)
+	void ImageMessageForRecv::writeFile(const std::u16string& imageDir, SockStream& stream)
 	{
 		auto count = stream.getInt();
 		for (int i = 0; i < count; ++i) {
 			buffer fileBuf;
 			stream.getBuffer(fileBuf);
 			auto fileName = imageDir + fileList_[i];
-			FileUtils::FnCreateFile(fileName, fileBuf);
+			FileUtils::FnCreateFile(su::u16to8(fileName), fileBuf);
 		}
 	}
 
-	std::wstring ImageMessageForRecv::getSender()
+	std::u16string ImageMessageForRecv::getSender()
 	{
 		return sender_;
 	}

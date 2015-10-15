@@ -1,4 +1,4 @@
-#include "QPainter.h"
+#include <QPainter>
 #include "PictureLabel.h"
 
 void PictureLabel::paintEvent(QPaintEvent *aEvent)

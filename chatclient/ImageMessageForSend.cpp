@@ -13,33 +13,33 @@ namespace avc
 	{
 	}
 
-	void ImageMessageForSend::setRawMessage(const std::wstring& message, const std::wstring& recver, time_t timestamp)
+	void ImageMessageForSend::setRawMessage(const std::u16string& message, const std::u16string& recver, time_t timestamp)
 	{
 		rawMessage_ = message;
 		recver_ = recver;
 		timestamp_ = timestamp;
 	}
 
-	std::wstring ImageMessageForSend::getRawMessage()
+	std::u16string ImageMessageForSend::getRawMessage()
 	{
 		return rawMessage_;
 	}
 
-	std::vector<std::wstring> ImageMessageForSend::getHashList()
+	std::vector<std::u16string> ImageMessageForSend::getHashList()
 	{
 		avc::Utils::XmlToImageList(rawMessage_, &fileList_);
 		for (auto filePath : fileList_) {
-			std::wstring hash;
-			FileUtils::CalculateFileSHA1(filePath, &hash);
+			std::u16string hash;
+			//FileUtils::CalculateFileSHA1(filePath, &hash);
 			hashList_.push_back(hash);
 		}
 		return hashList_;
 	}
 
-	std::vector<std::wstring> ImageMessageForSend::getUploadFileList(const std::vector<std::wstring>& checkList)
+	std::vector<std::u16string> ImageMessageForSend::getUploadFileList(const std::vector<std::u16string>& checkList)
 	{
 		urlList_ = checkList;
-		std::vector<std::wstring> uploadList;
+		std::vector<std::u16string> uploadList;
 		for (int i = 0; i < checkList.size(); ++i) {
 			if (checkList[i].empty()) {
 				uploadList.push_back(fileList_[i]);
@@ -48,7 +48,7 @@ namespace avc
 		return uploadList;
 	}
 
-	std::wstring ImageMessageForSend::translateMessage(const std::vector<std::wstring>& uploadList)
+	std::u16string ImageMessageForSend::translateMessage(const std::vector<std::u16string>& uploadList)
 	{
 		int pos = 0;
 		for (int i = 0; i < urlList_.size(); ++i) {
@@ -57,11 +57,11 @@ namespace avc
 				pos++;
 			}
 		}
-		std::map<std::wstring, std::wstring> fileMap;
+		std::map<std::u16string, std::u16string> fileMap;
 		for (int i = 0; i < urlList_.size(); ++i) {
 			fileMap[fileList_[i]] = urlList_[i];
 		}
-		std::wstring message;
+		std::u16string message;
 		avc::Utils::XmlTranslateMessage(rawMessage_, fileMap, &message);
 		return message;
 	}
@@ -71,7 +71,7 @@ namespace avc
 		return timestamp_;
 	}
 
-	std::wstring ImageMessageForSend::getRecver()
+	std::u16string ImageMessageForSend::getRecver()
 	{
 		return recver_;
 	}

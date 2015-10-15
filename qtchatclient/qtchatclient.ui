@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>qtchatclient</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="qtchatclient.qrc">
+    <normaloff>:/Resources/chat.ico</normaloff>:/Resources/chat.ico</iconset>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
     <number>0</number>
@@ -327,12 +331,12 @@
   <customwidget>
    <class>TitleBar</class>
    <extends>QWidget</extends>
-   <header>titlebar.h</header>
+   <header>TitleBar.h</header>
   </customwidget>
   <customwidget>
    <class>TextViewer</class>
    <extends>QWidget</extends>
-   <header>textviewer.h</header>
+   <header>TextViewer.h</header>
   </customwidget>
  </customwidgets>
  <resources>

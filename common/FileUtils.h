@@ -18,4 +18,5 @@ public:
 	static int CalculateFileSHA1(const std::string& filePath, std::string* pHash);
 	static std::string getFileExt(const std::string& filePath);
 	static std::string FileSizeToReadable(int fileSize);
+	static void MkDirs(const std::string& filePath);
 };

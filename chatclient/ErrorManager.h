@@ -11,8 +11,8 @@ namespace avc
 	public:
 		ErrorManager(ChatClient* client);
 		~ErrorManager();
-		void addMessageRequest(int64_t id, const std::wstring& remote, int64_t timestamp);
-		void confirmMessageRequest(int64_t id, const std::wstring& remote);
+		void addMessageRequest(int64_t id, const std::u16string& remote, int64_t timestamp);
+		void confirmMessageRequest(int64_t id, const std::u16string& remote);
 		void checkRequests();
 		void threadFun();
 		void quit();

@@ -1,11 +1,12 @@
 #pragma once
 #include <string>
-class StringUtils
+class su
 {
 public:
-	StringUtils();
-	~StringUtils();
-	static std::string Utf16ToUtf8String(const std::u16string& str);
-	static std::u16string Utf8ToUtf16String(const std::string& str);
+	su();
+	~su();
+	static std::string u16to8(const std::u16string& str);
+	static std::u16string u8to16(const std::string& str);
+	static std::string buf2string(unsigned char* buf,  int len); 
 };
 

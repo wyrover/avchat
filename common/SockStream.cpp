@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "SockStream.h"
 #include "buffer.h"
-#include "Utils.h"
 #include "StringUtils.h"
+#include "Utils.h"
 
 SockStream::SockStream()
 {
@@ -37,6 +37,11 @@ int SockStream::writeInt64(int64_t value)
 	return write((char*)&value, 8);
 }
 
+int SockStream::writePtr(void* ptr)
+{
+	return write((char*)&ptr, sizeof(void*));
+}
+
 int SockStream::writeString(const std::u16string& str)
 {
 	int len = writeInt(str.length());
@@ -47,7 +52,7 @@ int SockStream::writeString(const std::u16string& str)
 
 int SockStream::writeUtf8String(const std::string& str)
 {
-	writeString(StringUtils::Utf8ToUtf16String(str));
+	writeString(su::u8to16(str));
 }
 
 int SockStream::writeDouble(double value)
@@ -102,6 +107,18 @@ int64_t SockStream::getInt64()
 	return value;
 }
 
+
+void* SockStream::getPtr()
+{
+	if (curr_ + sizeof(void*) > size_)
+		throw std::out_of_range("read error");
+	char* ptr = buff_ + curr_;
+	char* value = (char*)*(int64_t*)ptr;
+	curr_ += sizeof(void*);
+	return value;
+}
+
+
 std::u16string SockStream::getString()
 {
 	int len = getInt();
@@ -114,7 +131,7 @@ std::u16string SockStream::getString()
 
 std::string SockStream::getUtf8String()
 {
-	return StringUtils::Utf16ToUtf8String(getString());
+	return su::u16to8(getString());
 }
 
 double SockStream::getDouble()
@@ -278,5 +295,11 @@ void SockStream::getBuffer(buffer& buf)
 	tmpBuf.append(ptr, bytes);
 	curr_ += bytes;
 	tmpBuf.swap(buf);
+}
+
+
+std::string SockStream::toHexString() const
+{
+	return su::buf2string((unsigned char*)buff_, size_);
 }
 

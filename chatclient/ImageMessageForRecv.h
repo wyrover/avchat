@@ -1,6 +1,8 @@
 #pragma once
 
 class SockStream;
+#include <string>
+#include <vector>
 namespace avc
 {
 	class ImageMessageForRecv
@@ -8,20 +10,20 @@ namespace avc
 	public:
 		ImageMessageForRecv();
 		~ImageMessageForRecv();
-		void setRawMessage(const std::wstring& message, const std::wstring& sender,
-			const std::wstring& recver, time_t timestamp);
-		std::wstring getRawMessage();
+		void setRawMessage(const std::u16string& message, const std::u16string& sender,
+			const std::u16string& recver, time_t timestamp);
+		std::u16string getRawMessage();
 		time_t getTimeStamp();
-		std::wstring getRecver();
-		std::wstring getSender();
-		std::vector<std::wstring> getNeedDownloadFileList(const std::wstring& imageDir);
-		void writeFile(const std::wstring& imageDir, SockStream& stream);
+		std::u16string getRecver();
+		std::u16string getSender();
+		std::vector<std::u16string> getNeedDownloadFileList(const std::u16string& imageDir);
+		void writeFile(const std::u16string& imageDir, SockStream& stream);
 
 	private:
-		std::wstring sender_;
-		std::wstring recver_;
+		std::u16string sender_;
+		std::u16string recver_;
 		time_t timestamp_;
-		std::wstring rawMessage_;
-		std::vector<std::wstring> fileList_;
+		std::u16string rawMessage_;
+		std::vector<std::u16string> fileList_;
 	};
 }

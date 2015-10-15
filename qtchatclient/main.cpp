@@ -1,33 +1,43 @@
 #include "qtchatclient.h"
+
+#include <assert.h>
+#include <syslog.h>
+#include <memory>
+
 #include <QtWidgets/QApplication>
 #include <QTranslator>
-#include <assert.h>
 #include <QDebug>
-#include <memory>
+
+#include "../chatclient/ChatClient.h"
 #include "LoginDialog.h"
 #include "DropShadowWidget.h"
-#include "../common/WSAStarter.h"
-#include "../chatclient/ChatClient.h"
-
+#include "ChatClientController.h"
 
 int main(int argc, char *argv[])
 {
-	WSAStarter starter;
-	if (!starter.init())
-		return -1;
-	QApplication a(argc, argv);
-	qRegisterMetaType<int64_t>();
-	std::unique_ptr<avc::ChatClient> client(new avc::ChatClient());
-	client->init(L"127.0.0.1", 2333);
+    openlog("qtchatclient", LOG_PID | LOG_CONS, LOG_USER);
+    QApplication a(argc, argv);
+
 	QTranslator appTranslator;
 	appTranslator.load("qtchatclient_zh.qm", qApp->applicationDirPath());
-	a.installTranslator(&appTranslator);
+    a.installTranslator(&appTranslator);
+
+    auto controller = new ChatClientController();
+    std::unique_ptr<avc::ChatClient> client(new avc::ChatClient());
+    client->init(u"127.0.0.1", 2333);
+    client->setController(controller);
+
 	LoginDialog dlg(client.get());
 	auto result = dlg.exec();
-	if (result == QDialog::Rejected)
-		return 1;
-	//QApplication::setQuitOnLastWindowClosed(false);
+    if (result == QDialog::Rejected) {
+        client->logout();
+        return 1;
+    }
+
+    QApplication::setQuitOnLastWindowClosed(true);
 	qtchatclient w(client.get());
 	w.show();
-	return a.exec();
+    auto rc =  a.exec();
+    closelog();
+    return rc;
 }

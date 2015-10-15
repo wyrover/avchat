@@ -1,20 +1,19 @@
 #include "OneToOneRoom.h"
 #include <QStringList>
-#include <ATLComTime.h>
 #include <QTextStream>
 #include <QScrollBar>
-#include <QShortCut>
 #include <QFileDialog>
 #include <QDebug>
 #include <QMenu>
 #include <QGraphicsDropShadowEffect>
 #include <QSizeGrip>
+#include <qshortcut.h>
 #include "TitleBar.h"
 #include "Utils.h"
 #include "../chatclient/RequestFilesInfo.h"
 #include "../common/trace.h"
 
-OneToOneRoom::OneToOneRoom(avc::ChatClient* client, const std::wstring& remote)
+OneToOneRoom::OneToOneRoom(avc::ChatClient* client, const std::u16string& remote)
 {
 	remote_ = remote;
 	client_ = client;
@@ -34,9 +33,9 @@ OneToOneRoom::OneToOneRoom(avc::ChatClient* client, const std::wstring& remote)
 	addPicBtn->setIcon(QIcon(":/Resources/image.png"));
 	addVoiceBtn->setIcon(QIcon(":/Resources/voice.png"));
 	sendFileBtn->setIcon(QIcon(":/Resources/file.png"));
-	titleBar->setTitle(QString("%1@public chat room").arg(QString::fromStdWString(client_->getEmail())));
+    titleBar->setTitle(QString("%1@public chat room").arg(QString::fromStdU16String(client_->getEmail())));
 	textEdit->setFocus();
-	titleBar->setTitle(QString("%1->%2").arg(QString::fromStdWString(client_->getEmail()), QString::fromStdWString(remote_)));
+    titleBar->setTitle(QString("%1->%2").arg(QString::fromStdU16String(client_->getEmail()), QString::fromStdU16String(remote_)));
 
 
 	new QShortcut(QKeySequence(Qt::CTRL + Qt::Key_T), this, SLOT(test()));
@@ -52,8 +51,8 @@ OneToOneRoom::~OneToOneRoom()
 
 void OneToOneRoom::addMessage(const QString& username, time_t timestamp, const QString& message)
 {
-	textBrowser->addMessage(username, username.toStdWString() == client_->getEmail(), timestamp,
-		message, QString::fromStdWString(client_->getImageDir()));
+    textBrowser->addMessage(username, username.toStdU16String() == client_->getEmail(), timestamp,
+        message, QString::fromStdU16String(client_->getImageDir()));
 }
 
 void OneToOneRoom::addFileRequest(const QString& sender, int64_t timestamp,
@@ -64,9 +63,9 @@ void OneToOneRoom::addFileRequest(const QString& sender, int64_t timestamp,
 	stackedWidget->setCurrentWidget(fileRequestWidget);
 }
 
-__override void OneToOneRoom::paintEvent(QPaintEvent *event)
+void OneToOneRoom::paintEvent(QPaintEvent *event)
 {
-	__super::paintEvent(event);
+    QDialog::paintEvent(event);
 	QPainter painter(this);
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(QBrush(QColor(0xEBF2F9)));
@@ -78,11 +77,11 @@ void OneToOneRoom::onSendClicked()
 	//userInfoWidget->show();
 	//stackedWidget->setCurrentWidget(userInfoWidget);
 	auto html = textEdit->toHtml();
-	auto text = textEdit->toPlainText().toStdWString();
+    auto text = textEdit->toPlainText().toStdU16String();
 	auto message = Utils::textEditToMessageText(textEdit);
 	auto timestamp = time(NULL);
 	client_->sendMessage(remote_, message, timestamp);
-	addMessage(QString::fromStdWString(client_->getEmail()), timestamp, QString::fromStdWString(message));
+    addMessage(QString::fromStdU16String(client_->getEmail()), timestamp, QString::fromStdU16String(message));
 	textEdit->clear();
 }
 
@@ -107,7 +106,7 @@ void OneToOneRoom::sendFile()
 
 	auto size = f.size();
 	avc::RequestFilesInfo fi;
-	fi.fileName = filePath.toStdWString();
+    fi.fileName = filePath.toStdU16String();
 	fi.fileSize = size;
 	client_->sendFileTransferRequest(remote_, fi, timestamp);
 }
