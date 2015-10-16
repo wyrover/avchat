@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ChatError.h"
+#include <string>
 
 namespace avc
 {

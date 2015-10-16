@@ -42,14 +42,15 @@ else
 	if test x${MYSQL_LIB_DIR} != x; then
 		MYSQL_LDFLAGS="-L{MYSQL_LIB_DIR}"
 		MYSQL_CFLAGS="-I{MYSQL_INC_DIR}"
+		AC_SUBST([MYSQL_CFLAGS])
+		AC_SUBST([MYSQL_LDFLAGS])
 	else
 		AC_MSG_ERROR([avchat requires mysql client])
 	fi
 fi
 
-LDFLAGS="$LDFLAGS $MYSQL_LDFLAGS"
-CPPFLAGS="$CPPFLAGS $MYSQL_CFLAGS"
-CFLAGS="$CFLAGS $MYSQL_CFLAGS"
+PKG_CHECK_MODULES([CRYPTOPP], [libcryptopp >= 5])
+AC_SUBST([CRYPTOPP_CFLAGS])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h string.h wchar.h])

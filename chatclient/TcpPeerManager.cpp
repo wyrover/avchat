@@ -87,7 +87,7 @@ namespace avc
 				auto str = is.getString();
 				if (str.size() != kPeerSyncString.size())
 					return H_NETWORK_ERROR;
-				str == base::Utils::XorString(str, kPeerSyncString);
+				str = base::Utils::XorString(str, kPeerSyncString);
 				if (str != randomString)
 					return H_NETWORK_ERROR;
 				sockMap_[remoteName] = sock;

@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/event.h>
+#include <sys/time.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <syslog.h>
@@ -19,7 +21,7 @@
 #include "ChatClient.h"
 
 #define LOG_LOGIN 1
-#define LOG_EPOLL 0
+#define LOG_KQUEUE 0
 
 const static int kMaxEventsCount = 1000;
 
@@ -31,7 +33,7 @@ namespace avc
 		quit_ = false;
 		sock_ = -1;
 		listenSock_ = -1;
-		epfd_ = -1;
+		kq_ = -1;
 		controller_ = NULL;
 		serverPort_ = -1;
 	}
@@ -143,19 +145,27 @@ namespace avc
 
 	void ChatClient::threadFun(bool initRecv)
 	{
-		TRACE_IF(LOG_EPOLL, "chatclient::run %d\n", std::this_thread::get_id());
+		TRACE_IF(LOG_KQUEUE, "chatclient::run %d\n", std::this_thread::get_id());
+		struct timespec tmout = { 1, 0 };
+		std::vector<struct kevent> events_;
+		events_.resize(kMaxEventsCount);
 		while (!quit_) {
-			int eventCount = epoll_wait(epfd_, events_.data(), kMaxEventsCount, 100);
+			int eventCount = kevent(kq_, NULL, 0, events_.data(), events_.size(), &tmout);
 			if (eventCount > 0) {
 				for (int i = 0; i < eventCount; ++i) {
-//                                        if (events_[i].events & EPOLLERR) {
-//						perror("epoll error\n");
-//						close(events_[i].data.fd);
-//						continue;
-//					}
-					if (events_[i].data.fd == listenSock_) {
+					if (events_[i].flags & EV_EOF) {
+						perror("remote sock shutdown\n");
+						close(events_[i].ident);
+						continue;
+					}
+					if (events_[i].flags & EV_ERROR) {
+						fprintf(stderr, "kqueue ev_error : %s\n", strerror(events_[i].data));
+						close(events_[i].ident);
+						continue;
+					}
+					if (events_[i].ident == listenSock_) {
 						while (true) {
-							TRACE("event events flags = %d\n", events_[i].events);
+							TRACE("event events flags = %d\n", events_[i].flags);
 							sockaddr_in remoteAddr;
 							socklen_t addrLen = sizeof(sockaddr_in);
 							auto clientfd = accept(listenSock_, (sockaddr*)&remoteAddr, &addrLen);
@@ -168,11 +178,13 @@ namespace avc
 								TRACE_IF(LOG_LOGIN, "%d recv connection from %s, thread id = %d\n",
 										(int)acceptedRequest_, str, std::this_thread::get_id());
 #endif
-
-								epoll_event ev;
-								ev.events = EPOLLIN | EPOLLET;
-								ev.data.fd = clientfd;
-								epoll_ctl(epfd_, EPOLL_CTL_ADD, clientfd, &ev);
+								struct kevent ev;
+								EV_SET(&ev, clientfd, EVFILT_READ, EV_ADD, 0, 0, 0);
+								if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
+									perror("kevent bind clientfd failed\n");
+									close(clientfd);
+									continue;
+								}
 							} else {
 								if (errno != EAGAIN && errno != EWOULDBLOCK)
 									perror("accept error\n");
@@ -180,14 +192,14 @@ namespace avc
 							}
 						}
 					} else {
-						if (events_[i].events & EPOLLOUT) {
+						if (events_[i].filter == EVFILT_WRITE) {
 							handleConnect();
-						} else if (events_[i].events & EPOLLIN) {
+						} else if (events_[i].filter == EVFILT_READ) {
 							buffer buf(1024);
 							size_t len = 1024;
 							bool done = false;
 							while (true) {
-								auto rc = recv(events_[i].data.fd, buf.data(), len, 0);
+								auto rc = recv(events_[i].ident, buf.data(), len, 0);
 								if (rc == -1) {
 									if (errno != EAGAIN) {
 										perror("read");
@@ -198,10 +210,10 @@ namespace avc
 									done = true;
 									break;
 								}
-								cmdCenter_.fill(events_[i].data.fd, buf.data(), rc);
+								cmdCenter_.fill(events_[i].ident, buf.data(), rc);
 							}
 							if (done) {
-								close(events_[i].data.fd);
+								close(events_[i].ident);
 							}
 						}
 					}
@@ -237,7 +249,8 @@ namespace avc
 
 	void ChatClient::start()
 	{
-                int threadCount = base::Utils::GetCpuCount() * 2;
+		//int threadCount = base::Utils::GetCpuCount() * 2;
+		int threadCount = 1;
 		for (int i = 0; i < threadCount; ++i){
 			threads_.push_back(std::thread(&ChatClient::threadFun, this, i == 0));
 		}
@@ -259,8 +272,8 @@ namespace avc
 	{
 		loginRequest_.type = type;
 		loginRequest_.username = username;
-                loginRequest_.password = credential;
-                email_ = username;
+		loginRequest_.password = credential;
+		email_ = username;
 
 		initSock();
 		sockaddr_in addr = { 0 };
@@ -274,17 +287,19 @@ namespace avc
 		auto err = connect(sock_, (const sockaddr*)&addr, sizeof(sockaddr_in));
 		if (err == -1) {
 			if (errno == EINPROGRESS) {
-				if (epfd_ == -1) {
-					epfd_ = epoll_create(kMaxEventsCount);
-					if (epfd_ == -1)
+				if (kq_ == -1) {
+					kq_ = kqueue();
+					if (kq_ == -1)
 						return H_SERVER_ERROR;
 				}
-				events_.resize(kMaxEventsCount);
-				epoll_event ev;
-				ev.events = EPOLLOUT | EPOLLIN | EPOLLET;
-				ev.data.fd = sock_;
-				if (epoll_ctl(epfd_, EPOLL_CTL_ADD, sock_, &ev) < 0)
-					return H_SERVER_ERROR;
+				struct kevent ev;
+				EV_SET(&ev, sock_, EVFILT_WRITE, EV_ADD, 0, 0, 0);
+				if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
+					perror("kqueue sock_ add failed\n");
+					close(sock_);
+					sock_ = -1;
+					return H_NETWORK_ERROR;
+				}
 				start();
 			} else {
 				openlog("chatclient", LOG_PID|LOG_CONS, LOG_USER);
@@ -307,11 +322,20 @@ namespace avc
 			return H_NETWORK_ERROR;
 		}
 
-		epoll_event ev;
-		ev.events = EPOLLIN | EPOLLET;
-		ev.data.fd = sock_;
-		if (epoll_ctl(epfd_, EPOLL_CTL_MOD, sock_, &ev) != 0) {
-			controller()->onChatError(new LoginError());
+                struct kevent ev;
+                EV_SET(&ev, sock_, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
+                if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
+                        perror("kqeueue change client socket failed\n");
+                        close(sock_);
+                        sock_ = -1;
+                        return H_NETWORK_ERROR;
+                }
+
+		EV_SET(&ev, sock_, EVFILT_READ, EV_ADD, 0, 0, 0);
+		if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
+			perror("kqeueue change client socket failed\n");
+			close(sock_);
+			sock_ = -1;
 			return H_NETWORK_ERROR;
 		}
 
@@ -348,7 +372,6 @@ namespace avc
 			return H_NETWORK_ERROR;
 		if (base::Utils::MakeSocketNonBlocking(sock_) < 0)
 			return H_NETWORK_ERROR;
-		return H_OK;
 		return H_OK;
 	}
 

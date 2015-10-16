@@ -17,14 +17,13 @@
 #include "../common/trace.h"
 
 #define LOG_LOGIN 1
-#define LOG_EPOLL 1
+#define LOG_KQUEUE 1
 
 const static int kPort = 2333;
 const static int kMaxAcceptRequest = 1000;
 const static int kMaxEventsCount = 500;
 
-ChatServer::ChatServer()
-	: cmdCenter_(this)
+ChatServer::ChatServer() : cmdCenter_(this)
 {
 	quit_ = false;
 	acceptedRequest_ = 0;
@@ -63,7 +62,7 @@ int ChatServer::initSock(const char* port)
 	if (getaddrinfo(NULL, port, &hints, &result) != 0) {
 		return H_NETWORK_ERROR;
 	}
-	
+
 	int rc = -1;
 	for (auto rp = result; rp != nullptr; rp = rp->ai_next) {
 		rc = bind(listenSock_, rp->ai_addr, rp->ai_addrlen);
@@ -84,17 +83,18 @@ int ChatServer::initSock(const char* port)
 		return H_NETWORK_ERROR;
 	}
 
-	epfd_ = epoll_create(kMaxAcceptRequest);
-	if (epfd_ == -1)
+	kq_ = kqueue();
+	if (kq_ == -1)
 		return H_SERVER_ERROR;
 
-	events_.resize(kMaxEventsCount);
-	epoll_event ev;
-	ev.events = EPOLLIN | EPOLLET;
-	ev.data.fd = listenSock_;
-	if (epoll_ctl(epfd_, EPOLL_CTL_ADD, listenSock_, &ev) < 0) 
-		return H_SERVER_ERROR;
-	int threadCount = base::Utils::GetCpuCount() * 2;
+	struct kevent ev;
+	EV_SET(&ev, listenSock_, EVFILT_READ, EV_ADD, 0, 0, 0);
+	if (kevent(kq_, &ev, 1, NULL, 0, NULL)  < 0) {
+		return H_NETWORK_ERROR;
+	}
+
+	//int threadCount = base::Utils::GetCpuCount() * 2;
+	int threadCount = 1;
 	for (int i = 0; i < threadCount; ++i){
 		threads_.push_back(std::thread(&ChatServer::threadFun, this));
 	}
@@ -103,22 +103,28 @@ int ChatServer::initSock(const char* port)
 
 void ChatServer::threadFun()
 {
-	TRACE_IF(LOG_EPOLL, "chatserver::run %d\n", std::this_thread::get_id());
+	TRACE_IF(LOG_KQUEUE, "chatserver::run %d\n", std::this_thread::get_id());
+	std::vector<struct kevent> events_;
+	events_.resize(kMaxEventsCount);
+	struct timespec tmout = { 1, 0 };
 	while (!quit_) {
-		int eventCount = epoll_wait(epfd_, events_.data(), kMaxEventsCount, -1);
+		int eventCount = kevent(kq_, NULL, 0, events_.data(), events_.size(), &tmout);
 		if (eventCount > 0) {
 			for (int i = 0; i < eventCount; ++i) {
-				if ((events_[i].events & EPOLLERR) ||
-						(events_[i].events & EPOLLHUP)  ||
-						!(events_[i].events & EPOLLIN)) {
-					perror("epoll error\n");
-					close(events_[i].data.fd);
+				if (events_[i].flags & EV_EOF) {
+					fprintf(stderr, "kqueue error: %s\n", strerror(events_[i].data));
+					close(events_[i].ident);
+					continue;
+				}
+				if (events_[i].flags & EV_ERROR) {
+					perror("kqueue error\n");
+					close(events_[i].ident);
 					continue;
 				}
 
-				if (events_[i].data.fd == listenSock_) {
+				if (events_[i].ident == listenSock_) {
 					while (true) {
-						TRACE("event events flags = %d\n", events_[i].events);
+						TRACE("event events flags = %d\n", events_[i].flags);
 						sockaddr_in remoteAddr;
 						socklen_t addrLen = sizeof(sockaddr_in);
 						auto clientfd = accept(listenSock_, (sockaddr*)&remoteAddr, &addrLen);
@@ -131,11 +137,13 @@ void ChatServer::threadFun()
 							TRACE_IF(LOG_LOGIN, "%d recv connection from %s, thread id = %d\n",
 									(int)acceptedRequest_, str, std::this_thread::get_id());
 #endif
-
-							epoll_event ev;
-							ev.events = EPOLLIN | EPOLLET;
-							ev.data.fd = clientfd;
-							epoll_ctl(epfd_, EPOLL_CTL_ADD, clientfd, &ev);
+							struct kevent ev;
+							EV_SET(&ev, clientfd, EVFILT_READ, EV_ADD, 0, 0, 0);
+							if (kevent(kq_, &ev, 1, NULL, 0, NULL) < 0) {
+								perror("set clientfd kqueue failed\n");
+								close(clientfd);
+								continue;
+							}
 						} else {
 							if (errno != EAGAIN && errno != EWOULDBLOCK)
 								perror("accept error\n");
@@ -143,12 +151,12 @@ void ChatServer::threadFun()
 						}
 					}
 				} else {
-					if (events_[i].events & EPOLLIN) {
+					if (events_[i].filter == EVFILT_READ) {
 						buffer buf(1024);
 						size_t len = 1024;
 						bool done = false;
 						while (true) {
-							auto rc = recv(events_[i].data.fd, buf.data(), len, 0);
+							auto rc = recv(events_[i].ident, buf.data(), len, 0);
 							if (rc == -1) {
 								if (errno != EAGAIN) {
 									perror("read");
@@ -159,10 +167,10 @@ void ChatServer::threadFun()
 								done = true;
 								break;
 							}
-							cmdCenter_.fill(events_[i].data.fd, buf.data(), rc);
+							cmdCenter_.fill(events_[i].ident, buf.data(), rc);
 						}
 						if (done) {
-							close(events_[i].data.fd);
+							close(events_[i].ident);
 						}
 					} 
 				}

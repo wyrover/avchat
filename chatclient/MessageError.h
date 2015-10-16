@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ChatError.h"
+#include <stdint.h>
+#include <string>
 namespace avc
 {
 	class MessageError : public ChatError

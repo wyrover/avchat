@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "MessageError.h"
+#include <stdint.h>
 namespace avc
 {
 	MessageError::MessageError(int64_t id, const std::u16string& remoteName)

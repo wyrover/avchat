@@ -83,8 +83,9 @@ server_SOURCES = \
 				 chatserver/ClientManager.cpp \
 				 chatserver/FileMan.cpp \
 				 chatserver/Utils.cpp
-server_LDADD = -lmysqlcppconn-static -lmysqlclient -lcryptopp -lconfig libcommon.a 
-server_LDFLAGS = -z defs
+server_LDADD = $(MYSQL_LDFLAGS) -lmysqlcppconn-static -lmysqlclient -lcryptopp -lconfig libcommon.a 
+#server_LDFLAGS = -z defs
+server_CXXFLAGS = $(AM_CXXFLAGS) $(MYSQL_CFLAGS) $(CRYPTOPP_CFLAGS)
 
 chattest_SOURCES = \
 				  chatclient/client.cpp 

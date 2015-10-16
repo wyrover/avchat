@@ -35,3 +35,17 @@ std::string su::buf2string(unsigned char* buf, int len)
 	return sb.str();
 }
 
+std::u16string su::tolower(const std::u16string& str) 
+{
+	auto rc = str;
+	std::transform(rc.begin(), rc.end(), rc.begin(), ::tolower);
+	return rc;
+}
+
+std::string su::tolower(const std::string& str)
+{
+	auto rc = str;
+	std::transform(rc.begin(), rc.end(), rc.begin(), ::tolower);
+	return rc;
+}
+

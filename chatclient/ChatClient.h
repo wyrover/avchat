@@ -5,7 +5,7 @@
 #include <atomic>
 #include <vector>
 #include <thread>
-#include <sys/epoll.h>
+#include <sys/event.h>
 typedef int SOCKET;
 typedef int HANDLE;
 typedef int DWORD;
@@ -79,10 +79,9 @@ namespace avc
 
 			SOCKET sock_;
 			SOCKET listenSock_;
-			std::vector<epoll_event> events_;
 			std::atomic<int> acceptedRequest_;
 
-			int epfd_;
+			int kq_;
 			int serverPort_;
 			std::u16string serverAddr_;
 			LoginRequest loginRequest_;

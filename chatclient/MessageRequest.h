@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ChatRequest.h"
+#include <string>
 namespace avc
 {
 	class MessageRequest : public ChatRequest

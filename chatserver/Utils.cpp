@@ -1,6 +1,7 @@
 #include <string>
 #include <array>
 #include <boost/algorithm/string.hpp>
+#include "../common/StringUtils.h"
 #define _CRT_SECURE_NO_DEPRECATE
 #define CRYPTOPP_DEFAULT_NO_DLL
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
@@ -192,7 +193,7 @@ bool Utils::IsImage(buffer& buf)
 bool Utils::IsImageExt(const std::u16string& ext)
 {
 	return std::find_if(kImageExts.begin(), kImageExts.end(), [&ext](const std::u16string& item) {
-		return boost::iequals(item, ext); }) != kImageExts.end();
+		return su::tolower(item) == su::tolower(ext); }) != kImageExts.end();
 }
 
 std::u16string Utils::GetRandomFileName()

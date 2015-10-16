@@ -1,6 +1,9 @@
 #pragma once
 
 #include <mutex>
+#include <string>
+#include <stdint.h>
+#include <vector>
 namespace avc
 {
 	class ChatRequest;

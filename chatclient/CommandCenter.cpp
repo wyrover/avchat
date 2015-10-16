@@ -45,16 +45,16 @@ namespace avc
 	int CommandCenter::fill(SOCKET socket, char* inBuf, int inLen)
 	{
 		if (inLen == 0)
-                        return 0;
+			return 0;
 
-                mapMutex_.lock();
-                auto& cmdInfo = cmdMap_[socket];
-                mapMutex_.unlock();
-                std::lock_guard<std::recursive_mutex> locker(cmdInfo.fMutex);
+		mapMutex_.lock();
+		auto& cmdInfo = cmdMap_[socket];
+		mapMutex_.unlock();
+		std::lock_guard<std::recursive_mutex> locker(cmdInfo.fMutex);
 
-                assert(inLen > 0);
-                syslog(LOG_INFO, "client fill %d content: %s, prev buf len: %zu\n", inLen,
-                       su::buf2string((unsigned char*)inBuf, inLen).c_str(), cmdInfo.fBuf.size());
+		assert(inLen > 0);
+		syslog(LOG_INFO, "client fill %d content: %s, prev buf len: %zu\n", inLen,
+				su::buf2string((unsigned char*)inBuf, inLen).c_str(), cmdInfo.fBuf.size());
 
 		if (cmdInfo.fNeededLen == -1) {
 			if (cmdInfo.fBuf.size() + inLen < 8) {
@@ -65,14 +65,14 @@ namespace avc
 				int needLen = 8 - cmdInfo.fBuf.size();
 				cmdInfo.fBuf.append(inBuf, needLen);
 				SockStream stream(cmdInfo.fBuf.data(), cmdInfo.fBuf.size());
-                                auto cmdType = stream.getInt(); // type
-                                cmdInfo.fNeededLen = stream.getInt() - 8;
-                                syslog(LOG_INFO, "cmd neededlen = %d, cmdType = %d\n", cmdInfo.fNeededLen, cmdType);
-                                assert(cmdInfo.fNeededLen > 0);
+				auto cmdType = stream.getInt(); // type
+				cmdInfo.fNeededLen = stream.getInt() - 8;
+				syslog(LOG_INFO, "cmd neededlen = %d, cmdType = %d\n", cmdInfo.fNeededLen, cmdType);
+				assert(cmdInfo.fNeededLen > 0);
 				inBuf += needLen;
 				inLen -= needLen;
 			}
-                }
+		}
 
 		if (inLen >= cmdInfo.fNeededLen) {
 			cmdInfo.fBuf.append(inBuf, cmdInfo.fNeededLen);
@@ -106,20 +106,20 @@ namespace avc
 		switch (type) {
 			case net::kCommandType_LoginAck:
 				{
-                                        syslog(LOG_INFO, "client loginack size = %zu\n", stream.getSize());
-                                        onCmdLoginAck(socket, stream);
+					syslog(LOG_INFO, "client loginack size = %zu\n", stream.getSize());
+					onCmdLoginAck(socket, stream);
 					break;
 				}
 			case net::kCommandType_Message:
 				{
-                                        syslog(LOG_INFO, "client message size = %zu\n", stream.getSize());
-                                        onCmdMessage(socket, stream);
+					syslog(LOG_INFO, "client message size = %zu\n", stream.getSize());
+					onCmdMessage(socket, stream);
 					break;
 				}
 			case net::kCommandType_UserList:
 				{
-                                        syslog(LOG_INFO, "client userlist size = %zu\n", stream.getSize());
-                                        onCmdUserList(socket, stream);
+					syslog(LOG_INFO, "client userlist size = %zu\n", stream.getSize());
+					onCmdUserList(socket, stream);
 					break;
 				}
 			case net::kCommandType_FileExistsAck:
@@ -229,23 +229,24 @@ namespace avc
 		return H_OK;
 	}
 
-        HERRCODE CommandCenter::onCmdUserList(SOCKET socket, SockStream &is)
-        {
-                int size;
-                std::vector<std::u16string> userList;
-                try {
-                        size = is.getInt();
-                        if (size != is.getSize())
-                                return H_INVALID_PACKAGE;
-                        userList = is.getStringVec();
-                } catch (std::out_of_range& e) {
-                        return H_INVALID_PACKAGE;
-                }
+	HERRCODE CommandCenter::onCmdUserList(SOCKET socket, SockStream &is)
+	{
+		int size;
+		std::vector<std::u16string> userList;
+		try {
+			size = is.getInt();
+			if (size != is.getSize())
+				return H_INVALID_PACKAGE;
+			userList = is.getStringVec();
+		} catch (std::out_of_range& e) {
+			return H_INVALID_PACKAGE;
+		}
 		{
 			std::lock_guard<std::recursive_mutex> guard(userMutex_);
-                        userList_ = userList;
+			userList_ = userList;
 		}
 		controller_->onNewUserList();
+		return H_OK;
 	}
 
 	void CommandCenter::setController(ChatClient* client, IChatClientController* controller)
