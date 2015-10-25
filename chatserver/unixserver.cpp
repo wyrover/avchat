@@ -5,10 +5,14 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/resource.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <thread>
+#include <sstream>
+#include <stdio.h>
+#include <libconfig.h>
 #include "unixserver.h"
 #include "Utils.h"
 #include "ServerContext.h"
@@ -21,12 +25,14 @@
 #define LOG_LOGIN 1
 #define LOG_KQUEUE 1
 
-const static int kPort = 2333;
-const static int kMaxAcceptRequest = 1000;
 const static int kMaxEventsCount = 500;
 
 ChatServer::ChatServer() : cmdCenter_(this)
 {
+	udpHoleSock_ = -1;
+	tcpHoleSock_ = -1;
+	listenSock_ = -1;
+	kq_ = -1;
 	quit_ = false;
 	acceptedRequest_ = 0;
 }
@@ -41,43 +47,81 @@ HERRCODE ChatServer::start()
 	if (hr != H_OK)
 		return hr;
 
-	hr = initSock("2333");
-	return hr;
+	struct rlimit rl;
+	if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
+		return H_SERVER_ERROR;
+	rl.rlim_cur = 10240;
+	if (setrlimit(RLIMIT_NOFILE, &rl) < 0)
+		return H_SERVER_ERROR;
+	
+	config_t cfg;
+	config_setting_t *settings;
+	const char *str;
+	config_init(&cfg);
+	if (!config_read_file(&cfg, "avchat.cfg")) {
+		perror("cannot find configure file\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+	settings = config_lookup(&cfg, "server");
+	if (settings == nullptr) {
+		perror("cannot find server config section\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+	std::string ip;
+	std::string holePort;
+	std::string dataPort;
+	if (config_setting_lookup_string(settings, "ip", &str)) {
+		ip = str;
+	} 
+
+	if (config_setting_lookup_string(settings, "holePort", &str)) {
+		holePort = str;
+	} else {
+		perror("server.holePort missing\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+
+	if (config_setting_lookup_string(settings, "dataPort", &str)) {
+		dataPort = str;
+	} else {
+		perror("server.dataPort missing\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
+
+	return initSock(ip, dataPort, holePort);
 }
 
-int ChatServer::initSock(const char* port)
+HERRCODE ChatServer::initSock(const std::string& ip, const std::string& dataPort,
+				const std::string& holePort)
 {
 	listenSock_ = socket(AF_INET, SOCK_STREAM, 0);
 	if (listenSock_ == -1)
 		return H_NETWORK_ERROR;
 
-	udpSock_ = socket(AF_INET, SOCK_DGRAM, 0);
-	if (udpSock_ == -1)
+	tcpHoleSock_ = socket(AF_INET, SOCK_DGRAM, 0);
+	if (tcpHoleSock_ == -1)
 		return H_NETWORK_ERROR;
 
-	addrinfo hints;
-	addrinfo *result;
-	memset(&hints, 0, sizeof(addrinfo));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-	if (getaddrinfo(NULL, port, &hints, &result) != 0) {
+	udpHoleSock_ = socket(AF_INET, SOCK_DGRAM, 0);
+	if (udpHoleSock_ == -1)
 		return H_NETWORK_ERROR;
-	}
 
-	int rc = -1;
-	for (auto rp = result; rp != nullptr; rp = rp->ai_next) {
-		rc = bind(listenSock_, rp->ai_addr, rp->ai_addrlen);
-		if (rc == 0) {
-			break;
-		}
-	}
+	int rc  = base::Utils::BindSocket(listenSock_, ip, dataPort);
+	if (rc != H_OK)
+		return rc;
 
-	if (rc != 0) {
-		return H_NETWORK_ERROR;
-	}
+	rc  = base::Utils::BindSocket(tcpHoleSock_, ip, holePort);
+	if (rc != H_OK)
+		return rc;
 
 	if (base::Utils::MakeSocketNonBlocking(listenSock_) < 0)
+		return H_NETWORK_ERROR;
+
+	if (base::Utils::MakeSocketNonBlocking(tcpHoleSock_) < 0)
 		return H_NETWORK_ERROR;
 
 	rc = listen(listenSock_, SOMAXCONN);
@@ -95,96 +139,189 @@ int ChatServer::initSock(const char* port)
 		return H_NETWORK_ERROR;
 	}
 
-	//int threadCount = base::Utils::GetCpuCount() * 2;
-	int threadCount = 1;
-	for (int i = 0; i < threadCount; ++i){
-		threads_.push_back(std::thread(&ChatServer::threadFun, this));
+	EV_SET(&ev, tcpHoleSock_, EVFILT_READ, EV_ADD, 0, 0, 0);
+	if (kevent(kq_, &ev, 1, NULL, 0, NULL)  < 0) {
+		return H_NETWORK_ERROR;
 	}
+
+	threads_.push_back(std::thread(&ChatServer::threadFun, this));
+	cmdCenter_.start();
 	return H_OK;
+}
+
+bool ChatServer::setWatchOut(SOCKET sock, bool watch)
+{
+	struct kevent ev;
+	EV_SET(&ev, sock, EVFILT_WRITE,
+		   	(watch ? EV_ADD : EV_DELETE), 0, 0, 0);
+	if (kevent(kq_, &ev, 1, NULL, 0, NULL) < 0) {
+		perror("set clientfd kqueue write failed\n");
+		return false;
+	}
+	return true;
+}
+
+HERRCODE ChatServer::queueSendRequest(SOCKET sock, SockStream& stream)
+{
+	std::lock_guard<std::mutex> guard(sendMutex_);
+	auto& buffer = sendBuf_[sock];
+	if (!buffer.empty()) {
+		buffer.append(stream.getBuf(), stream.getSize());
+		return H_OK;
+	} else {
+		int rc = send(sock, stream.getBuf(), stream.getSize(), 0);
+		if (rc > 0) {
+			if (rc == stream.getSize()) {
+				printf("send request directly done %d\n", stream.getSize());
+				return H_OK;
+			} else {
+				buffer.append(stream.getBuf() + rc, stream.getSize() - rc);
+				if (!setWatchOut(sock, true))
+					return H_FAILED;
+				else
+					return H_OK;
+			}
+		} else {
+			if (errno != EAGAIN) {
+				//fixme: need handle ENOTBUFS/EPIPE ?
+				fprintf(stderr, "send failed errno: %d, %s\n", errno, strerror(errno));
+				return H_FAILED;
+			}
+			buffer.append(stream.getBuf(), stream.getSize());
+			if (!setWatchOut(sock, true))
+				return H_FAILED;
+			else
+				return H_OK;
+		}
+	}
+}
+
+bool ChatServer::sendRequest(SOCKET sock, int len)
+{
+	std::lock_guard<std::mutex> guard(sendMutex_);
+	auto& buf = sendBuf_[sock];
+	assert(!buf.empty());
+	if (len > buf.size())
+		len = buf.size();
+	int rc = send(sock, buf.data(), len, 0);
+	if (rc > 0) {
+		if (rc == buf.size()) {
+			buf.clear();
+			if (!setWatchOut(sock, false))
+				return false;
+			return true;
+		} else {
+			auto rptr = buf.data() + rc;
+			auto rlen = buf.size() - rc;
+			buf.detach();
+			buf.assign(rptr, rlen);
+			return true;
+		}
+	} else {
+		if (errno != EAGAIN) {
+			//fixme: need handle ENOTBUFS/EPIPE ?
+			fprintf(stderr, "send failed errno: %d, %s\n", errno, strerror(errno));
+			return false;
+		}
+		return true;
+	}
+}
+
+int ChatServer::acceptConnections(SOCKET sock)
+{
+	while (true) {
+		sockaddr_in remoteAddr;
+		socklen_t addrLen = sizeof(sockaddr_in);
+		auto clientfd = accept(sock, (sockaddr*)&remoteAddr, &addrLen);
+		if (clientfd != -1) {
+			auto rc = base::Utils::MakeSocketNonBlocking(clientfd);
+			acceptedRequest_++;
+#if LOG_LOGIN
+			char str[20];
+			inet_ntop(AF_INET, &remoteAddr.sin_addr, str, 20);
+			TRACE_IF(LOG_LOGIN, "%d recv connection from %s, thread id = %d\n",
+					(int)acceptedRequest_, str, std::this_thread::get_id());
+#endif
+			struct kevent ev;
+			EV_SET(&ev, clientfd, EVFILT_READ, EV_ADD, 0, 0, 0);
+			if (kevent(kq_, &ev, 1, NULL, 0, NULL) < 0) {
+				perror("set clientfd kqueue read failed\n");
+				close(clientfd);
+				return -1;
+			}
+		} else {
+			if (errno != EAGAIN && errno != EWOULDBLOCK)
+				perror("accept error\n");
+			return -1;
+		}
+	}
+	return 0;
 }
 
 void ChatServer::threadFun()
 {
 	TRACE_IF(LOG_KQUEUE, "chatserver::run %d\n", std::this_thread::get_id());
-	std::vector<struct kevent> events_;
-	events_.resize(kMaxEventsCount);
+	std::vector<struct kevent> events;
+	events.resize(kMaxEventsCount);
 	struct timespec tmout = { 1, 0 };
 	while (!quit_) {
-		int eventCount = kevent(kq_, NULL, 0, events_.data(), events_.size(), &tmout);
+		int eventCount = kevent(kq_, NULL, 0, events.data(), events.size(), &tmout);
 		if (eventCount > 0) {
 			for (int i = 0; i < eventCount; ++i) {
-				if (events_[i].flags & EV_EOF) {
-					perror("kqueue EV_EOF\n");
-					close(events_[i].ident);
+				printf("kevent %d event\n", eventCount);
+				if (events[i].flags & EV_EOF) {
+					std::stringstream idStr;
+					idStr << std::this_thread::get_id();
+					fprintf(stdout, "(%s)kqueue client socket done socket %x\n",
+							idStr.str().c_str(), (unsigned int)events[i].ident);
+					struct kevent ev;
+					EV_SET(&ev, events[i].ident, EVFILT_READ, EV_DELETE, 0, 0, 0);
+					if (kevent(kq_, &ev, 1, NULL, 0, NULL) < 0) {
+						perror("remove clientfd from kqueue failed\n");
+					} 
+					close(events[i].ident);
 					continue;
 				}
-				if (events_[i].flags & EV_ERROR) {
-					fprintf(stderr, "kqueue error: %s\n", strerror(events_[i].data));
-					close(events_[i].ident);
+				if (events[i].flags & EV_ERROR) {
+					perror("kqueue error\n");
+					close(events[i].ident);
 					continue;
 				}
 
-				if (events_[i].ident == listenSock_) {
-					while (true) {
-						TRACE("event events flags = %d\n", events_[i].flags);
-						sockaddr_in remoteAddr;
-						socklen_t addrLen = sizeof(sockaddr_in);
-						auto clientfd = accept(listenSock_, (sockaddr*)&remoteAddr, &addrLen);
-						if (clientfd != -1) {
-							auto rc = base::Utils::MakeSocketNonBlocking(clientfd);
-							acceptedRequest_++;
-#if LOG_LOGIN
-							char str[20];
-							inet_ntop(AF_INET, &remoteAddr.sin_addr, str, 20);
-							TRACE_IF(LOG_LOGIN, "%d recv connection from %s, thread id = %d\n",
-									(int)acceptedRequest_, str, std::this_thread::get_id());
-#endif
-							struct kevent ev;
-							EV_SET(&ev, clientfd, EVFILT_READ, EV_ADD, 0, 0, 0);
-							if (kevent(kq_, &ev, 1, NULL, 0, NULL) < 0) {
-								perror("set clientfd kqueue failed\n");
-								close(clientfd);
-								continue;
-							}
-						} else {
-							if (errno != EAGAIN && errno != EWOULDBLOCK)
-								perror("accept error\n");
+				if (events[i].filter == EVFILT_READ)  {
+					if (events[i].ident == listenSock_ || events[i].ident == tcpHoleSock_) {
+						acceptConnections(events[i].ident);
+					} else {
+						puts("handle filt_read");
+						size_t len = events[i].data;
+						buffer buf(len);
+						bool done = false;
+						auto rc = recv(events[i].ident, buf.data(), len, 0);
+						if (rc == -1) {
+							if (errno != EAGAIN) {
+								perror("recv error close socket");
+								close(events[i].ident);
+							} 
 							break;
 						}
+						cmdCenter_.fill(events[i].ident, buf.data(), rc);
 					}
-				} else {
-					if (events_[i].filter == EVFILT_READ) {
-						buffer buf(1024);
-						size_t len = 1024;
-						bool done = false;
-						while (true) {
-							auto rc = recv(events_[i].ident, buf.data(), len, 0);
-							if (rc == -1) {
-								if (errno != EAGAIN) {
-									perror("read");
-									done = true;
-								} 
-								break;
-							} else if (rc == 0) {
-								done = true;
-								break;
-							}
-							cmdCenter_.fill(events_[i].ident, buf.data(), rc);
-						}
-						if (done) {
-							close(events_[i].ident);
-						}
-					} 
+				} else if (events[i].filter == EVFILT_WRITE) {
+					puts("handle filt_write");
+					if (!sendRequest(events[i].ident, events[i].data)) {
+						perror("send request failed\n");
+						close(events[i].ident);
+					}
 				}
 			}
 		}
 	}
 }
 
-
 bool ChatServer::quit()
 {
 	quit_ = true;
+	cmdCenter_.quit();
 	return true;
 }
 

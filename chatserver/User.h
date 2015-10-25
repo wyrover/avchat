@@ -6,7 +6,7 @@
 class User
 {
 	friend class Client;
-	public:
+public:
 	enum UserStatus {
 		kStatus_Invalid,
 		kStatus_Online,
@@ -22,9 +22,9 @@ class User
 	int removeFriend(int userId);
 	int quitGroup(int groupId);
 	int getStatus();
-	std::u16string getAuthKey();
+	std::u16string getAuthKey() const;
 
-	protected:
+protected:
 	int id_;
 	std::u16string email_;
 	std::u16string username_;

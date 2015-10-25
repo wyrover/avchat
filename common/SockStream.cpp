@@ -52,7 +52,7 @@ int SockStream::writeString(const std::u16string& str)
 
 int SockStream::writeUtf8String(const std::string& str)
 {
-	writeString(su::u8to16(str));
+	return writeString(su::u8to16(str));
 }
 
 int SockStream::writeDouble(double value)

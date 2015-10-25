@@ -34,8 +34,8 @@ HERRCODE User::login(int authType, const std::u16string& email, const std::u16st
 					return H_AUTH_FAILED;
 				}
 			} else if (authType == net::kLoginType_Auto) {
-				auto token = res->getString("access_token");
-				if (token != su::u16to8(credential)) {
+				auto authKey = res->getString("auth_key");
+				if (authKey != su::u16to8(credential)) {
 					return H_AUTH_FAILED;
 				}
 			}
@@ -83,7 +83,7 @@ int User::getStatus()
 	return H_OK;
 }
 
-std::u16string User::getAuthKey()
+std::u16string User::getAuthKey() const
 {
 	return authKey_;
 }

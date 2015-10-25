@@ -4,6 +4,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <thread>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <boost/locale/encoding_utf.hpp>
 #include "Utils.h"
 #include "NetConstants.h"
@@ -70,13 +74,31 @@ namespace base
 		return result;
 	}
 
-	static std::string Utf16ToUtf8String(const std::u16string& str)
+	HERRCODE Utils::BindSocket(int sock, const std::string& ip, const std::string& port)
 	{
-		boost::locale::conv::utf_to_utf<char>(str.c_str(), str.c_str() + str.length());
+		addrinfo hints;
+		addrinfo *result;
+		memset(&hints, 0, sizeof(addrinfo));
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags = AI_PASSIVE;
+		if (getaddrinfo(ip.c_str(), port.c_str(), &hints, &result) != 0) {
+			return H_NETWORK_ERROR;
+		}
+
+		int rc = -1;
+		for (auto rp = result; rp != nullptr; rp = rp->ai_next) {
+			rc = bind(sock, rp->ai_addr, rp->ai_addrlen);
+			if (rc != 0) {
+				perror("bind failed\n");
+				break;
+			}
+		}
+
+		if (rc != 0) {
+			return H_NETWORK_ERROR;
+		}
+		return H_OK;
 	}
 
-	static std::u16string Utf8ToUtf16String(const std::string& str)
-	{
-		boost::locale::conv::utf_to_utf<char16_t>(str.c_str(), str.c_str() + str.length());
-	}
 }

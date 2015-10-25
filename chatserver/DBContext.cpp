@@ -16,7 +16,6 @@ DBContext::~DBContext()
 {
 }
 
-// FIXME: ini read write
 HERRCODE DBContext::init()
 {
 	config_t cfg;
@@ -28,11 +27,17 @@ HERRCODE DBContext::init()
 		config_destroy(&cfg);
 		return H_SERVER_ERROR;
 	}
+	settings = config_lookup(&cfg, "mysql");
+	if (settings == nullptr) {
+		perror("cannot find mysql config section\n");
+		config_destroy(&cfg);
+		return H_SERVER_ERROR;
+	}
 	std::string url;
 	std::string user;
 	std::string pass;
 	std::string dbName;
-	if (config_lookup_string(&cfg, "url", &str)) {
+	if (config_setting_lookup_string(settings, "url", &str)) {
 		url = str;
 	} else {
 		perror("db url missing\n");
@@ -40,7 +45,7 @@ HERRCODE DBContext::init()
 		return H_SERVER_ERROR;
 	}
 
-	if (config_lookup_string(&cfg, "user", &str)) {
+	if (config_setting_lookup_string(settings, "user", &str)) {
 		user = str;
 	} else {
 		perror("db user missing\n");
@@ -48,7 +53,7 @@ HERRCODE DBContext::init()
 		return H_SERVER_ERROR;
 	}
 
-	if (config_lookup_string(&cfg, "password", &str)) {
+	if (config_setting_lookup_string(settings, "password", &str)) {
 		pass = str;
 	} else {
 		perror("db password missing\n");
@@ -56,7 +61,7 @@ HERRCODE DBContext::init()
 		return H_SERVER_ERROR;
 	}
 
-	if (config_lookup_string(&cfg, "dbName", &str)) {
+	if (config_setting_lookup_string(settings, "dbName", &str)) {
 		dbName = str;
 	} else {
 		perror("db password missing\n");
