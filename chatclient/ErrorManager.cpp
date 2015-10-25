@@ -1,5 +1,11 @@
 #include "stdafx.h"
 #include <algorithm>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/event.h>
+#include <sys/time.h>
+
 #include "ErrorManager.h"
 #include "../common/trace.h"
 #include "MessageError.h"

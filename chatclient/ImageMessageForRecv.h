@@ -3,6 +3,7 @@
 class SockStream;
 #include <string>
 #include <vector>
+#include <time.h>
 namespace avc
 {
 	class ImageMessageForRecv

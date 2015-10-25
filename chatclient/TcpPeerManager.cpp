@@ -1,4 +1,12 @@
 #include "stdafx.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/event.h>
+#include <sys/time.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
 #include "../common/Utils.h"
 #include "../common/NetConstants.h"
 #include "../common/trace.h"

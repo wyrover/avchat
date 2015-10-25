@@ -5,7 +5,9 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #define CRYPTOPP_DEFAULT_NO_DLL
 #define CRYPTOPP_ENABLE_NAMESPACE_WEAK 1
+#ifdef _WIN32
 #include "crypto++/dll.h"
+#endif
 #include "crypto++/md5.h"
 #include "crypto++/hmac.h"
 #include "crypto++/ripemd.h"
@@ -22,6 +24,9 @@
 #include "crypto++/whrlpool.h"
 #include "crypto++/tiger.h"
 #include "crypto++/bench.h"
+#include "crypto++/cryptlib.h"
+#include "crypto++/osrng.h"
+#include "crypto++/hex.h"
 
 #include "../common/buffer.h"
 #include "Utils.h"

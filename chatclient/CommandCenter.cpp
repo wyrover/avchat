@@ -4,6 +4,8 @@
 #include <syslog.h>
 #include <sstream>
 #include <iomanip>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include "../common/SockStream.h"
 #include "../common/NetConstants.h"
 #include "../common/trace.h"

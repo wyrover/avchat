@@ -1,7 +1,9 @@
-#include <cstdio>
-
+#include <stdio.h>
+#include <stdint.h>
+#include <sys/types.h>
 #include "../common/errcode.h"
 #include "unixserver.h"
+
 
 int main(int argc, char** argv)
 {

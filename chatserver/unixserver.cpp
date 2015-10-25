@@ -2,10 +2,12 @@
 //
 
 #include "stdafx.h"
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <thread>
 #include "unixserver.h"
 #include "Utils.h"
@@ -112,12 +114,12 @@ void ChatServer::threadFun()
 		if (eventCount > 0) {
 			for (int i = 0; i < eventCount; ++i) {
 				if (events_[i].flags & EV_EOF) {
-					fprintf(stderr, "kqueue error: %s\n", strerror(events_[i].data));
+					perror("kqueue EV_EOF\n");
 					close(events_[i].ident);
 					continue;
 				}
 				if (events_[i].flags & EV_ERROR) {
-					perror("kqueue error\n");
+					fprintf(stderr, "kqueue error: %s\n", strerror(events_[i].data));
 					close(events_[i].ident);
 					continue;
 				}

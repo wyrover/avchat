@@ -5,6 +5,7 @@
 #include <atomic>
 #include <vector>
 #include <thread>
+#include <sys/types.h>
 #include <sys/event.h>
 typedef int SOCKET;
 typedef int HANDLE;
