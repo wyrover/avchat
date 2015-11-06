@@ -12,7 +12,7 @@
 #include "unixserver.h"
 
 #define LOG_SERVER 0
-#define TEST_MODE 1
+#define TEST_MODE 0
 
 //fixme: should not call send multiple times?
 // which could intepreter the package?
@@ -478,6 +478,7 @@ HERRCODE CommandCenter::onCmdBuildP2pPath(SOCKET socket, SockStream& is)
 	os.writeShort(publicAddr.sin_port);
 	os.flushSize();
 	queueSendRequest(recvSock, os);
+	return H_OK;
 }
 
 HERRCODE CommandCenter::onCmdBuildP2pPathAck(SOCKET socket, SockStream& is)

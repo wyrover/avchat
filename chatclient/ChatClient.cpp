@@ -291,7 +291,7 @@ void ChatClient::start()
 
 void ChatClient::setImageCacheDir(const std::u16string& filePath)
 {
-	imageCache_ = filePath + email_ + u"\\";
+	imageCache_ = filePath + u"\\" + email_ + u"\\";
 	FileUtils::MkDirs(su::u16to8(imageCache_));
 }
 

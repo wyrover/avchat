@@ -107,11 +107,12 @@ namespace avc
 					} 
 				}
 				if (!value.empty()) {
-					uMessage + "\xef\xbf\xbc";
+					uMessage += "\xef\xbf\xbc";
 					imageList->push_back(value);
 				}
 			}
 		}
+		assert(!imageList->empty());
 		*message = su::u8to16(uMessage);
 		return H_OK;
 	}

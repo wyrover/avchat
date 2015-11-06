@@ -8,6 +8,7 @@
 #include <QTranslator>
 #include <QDebug>
 
+#include "../common/StringUtils.h"
 #include "../chatclient/ChatClient.h"
 #include "LoginDialog.h"
 #include "DropShadowWidget.h"
@@ -24,7 +25,12 @@ int main(int argc, char *argv[])
 
     auto controller = new ChatClientController();
     std::unique_ptr<avc::ChatClient> client(new avc::ChatClient());
-    client->init(u"127.0.0.1", 2333);
+	auto server = getenv("AVSERVER");
+	if (server) {
+        client->init(su::u8to16(server), 2333);
+	} else {
+    	client->init(u"127.0.0.1", 2333);
+	}
     client->setController(controller);
 
 	LoginDialog dlg(client.get());

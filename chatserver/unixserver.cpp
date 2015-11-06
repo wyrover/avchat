@@ -52,7 +52,7 @@ HERRCODE ChatServer::start()
 	struct rlimit rl;
 	if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
 		return H_SERVER_ERROR;
-	rl.rlim_cur = std::max<rlim_t>(10240, rl.rlim_max);
+	rl.rlim_cur = std::min<rlim_t>(10240, rl.rlim_max);
 	if (setrlimit(RLIMIT_NOFILE, &rl) < 0) {
 		fprintf(stderr, "setrlimit for file handle failed errno: %d, %s\n", errno, strerror(errno));
 		return H_SERVER_ERROR;

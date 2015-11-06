@@ -19,7 +19,7 @@
 #include "../common/StringUtils.h"
 #include "ChatClientController.h"
 
-#define SERVER_ADDRESS u"192.168.134.125"
+#define SERVER_ADDRESS u"127.0.0.1"
 
 volatile bool quit = false;
 
@@ -202,10 +202,11 @@ int simpletest()
 		return -1;
 	}
 	client->setController(controller);
-	if (client->login(u"sss@sss.com", u"kekeke") != H_OK) {
+	if (client->login(u"jcyangzh@gmail.com", u"123456") != H_OK) {
 		syslog(LOG_ERR, "login error\n");
 		return -1;
 	}
+	sleep(10);
 	if (client->sendMessage(u"all", u"how are you", time(NULL)) != H_OK) {
 		syslog(LOG_ERR, "sendmessage error\n");
 		return -1;
@@ -227,11 +228,10 @@ int main(int argc, char *argv[])
 
 	getrlimit(RLIMIT_NOFILE, &limit);
 	printf("after %llu, %llu\n", limit.rlim_cur, limit.rlim_max);
-	syslog(LOG_ERR, "kekekekekek");
 	//int rc = test1::test1();
 	//int rc = rawtest::rawtest();
-	int rc = test2::test2();
-	//int rc = simpletest();
+	//int rc = test2::test2();
+	int rc = simpletest();
 	closelog();
 	return rc;
 }

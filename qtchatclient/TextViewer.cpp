@@ -153,7 +153,7 @@ void TextViewer::addBubbleTextFrame(const QString& username, const QString& mess
 		int index = 0;
 		int pos = -1;
 		int imageIndex = 0;
-		while ((pos = qtMessage.find(L'\uffec', index)) != -1) {
+        while ((pos = qtMessage.find(L'\ufffc', index)) != -1) {
 			auto text = QString::fromStdU16String(qtMessage.substr(index, pos - index));
 			QDir dir(imageDir);
 			c.insertText(text);
@@ -297,8 +297,9 @@ void TextViewer::mouseDoubleClickEvent(QMouseEvent *event)
 {
 	auto image = getImageByPos(event->pos());
 	if (!image.isNull()) {
-		ImageViewer* viewer = new ImageViewer();
-        //viewer->setPixmap(QPixmap::fromImage(image));
+        ImageViewer* viewer = new ImageViewer();
+        auto pixmap = QPixmap::fromImage(image);
+        viewer->setPixmap(pixmap);
 		viewer->show();
 	}
 }
