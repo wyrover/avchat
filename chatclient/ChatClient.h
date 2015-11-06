@@ -39,7 +39,7 @@ namespace avc
 		public:
 			ChatClient();
 			~ChatClient();
-			HERRCODE init(const std::u16string& serverAddr, int port);
+			HERRCODE init(int kq, const std::u16string& serverAddr, int port);
 			HERRCODE login(const std::u16string& username, const std::u16string& password);
 			HERRCODE autoLogin(const std::u16string& username, const std::u16string& token);
 			HERRCODE sendMessage(const std::u16string& username, const std::u16string& message, time_t timestamp);
@@ -49,9 +49,12 @@ namespace avc
 
 			ErrorManager& messageMan();
 			TcpPeerManager& peerMan();
+			CommandCenter& cmdCenter();
 			IChatClientController* controller();
 
 			void queueCheckTimeoutTask();
+			HERRCODE queueSendRequest(SOCKET socket, SockStream& stream);
+			bool sendRequest(SOCKET sock, int len);
 			void setImageCacheDir(const std::u16string& filePath);
 			std::u16string getImageDir();
 			std::vector<std::u16string> getUserList();
@@ -62,14 +65,14 @@ namespace avc
 		private:
 			HERRCODE loginImpl(int type, const std::u16string& username, const std::u16string& credential);
 			HERRCODE handleConnect();
-			void queueSendRequest(SOCKET socket, SockStream& stream);
 			void threadFun(bool initRecv);
 			void quit(bool wait);
 			HERRCODE initSock();
+			bool setWatchOut(SOCKET sock, bool watch);
 
 		private:
 			std::vector<std::thread> threads_;
-			std::atomic<bool> quit_;
+			volatile bool quit_;
 			CommandCenter cmdCenter_;
 			TcpPeerManager peerMan_;
 
@@ -78,10 +81,13 @@ namespace avc
 			std::u16string imageCache_;
 
 			SOCKET sock_;
-			SOCKET listenSock_;
 			std::atomic<int> acceptedRequest_;
 
+			std::map<SOCKET, buffer> sendBuf_;
+			std::mutex sendMutex_;
+
 			int kq_;
+			bool ownkq_;
 			int serverPort_;
 			std::u16string serverAddr_;
 			LoginRequest loginRequest_;

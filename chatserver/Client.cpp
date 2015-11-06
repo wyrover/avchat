@@ -2,7 +2,7 @@
 #include "Client.h"
 
 Client::Client(const User& user, SOCKET socket)
-	: user_(user), socket_(socket)
+: user_(user), socket_(socket)
 {
 
 }
@@ -30,4 +30,25 @@ void Client::logout()
 {
 	user_.logout();
 	close(socket_);
+}
+
+void Client::setAddr(const sockaddr_in& localAddr, const sockaddr_in& publicAddr)
+{
+	localAddr_ = localAddr;
+	publicAddr_ = publicAddr;
+}
+
+sockaddr_in Client::getLocalAddr()
+{
+	return localAddr_;
+}
+
+sockaddr_in Client::getPublicAddr()
+{
+	return publicAddr_;
+}
+
+std::u16string Client::getAuthKey() const
+{
+	return user_.getAuthKey();
 }

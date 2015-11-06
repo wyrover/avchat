@@ -11,11 +11,15 @@
 #include "Client.h"
 #include "unixserver.h"
 
-#define LOG_SERVER 1
+#define LOG_SERVER 0
+#define TEST_MODE 1
 
+//fixme: should not call send multiple times?
+// which could intepreter the package?
 CommandCenter::CommandCenter(ChatServer* server)
 {
 	server_ = server;
+	quit_ = false;
 }
 
 CommandCenter::~CommandCenter()
@@ -26,10 +30,7 @@ int CommandCenter::fill(SOCKET socket, char* inBuf, int inLen)
 {
 	if (inLen == 0)
 		return 0;
-	mapMutex_.lock();
 	auto& cmdInfo = cmdMap_[socket];
-	mapMutex_.unlock();
-	std::lock_guard<std::recursive_mutex> locker(cmdInfo.fMutex);
 	if (cmdInfo.fNeededLen == -1) {
 		if (cmdInfo.fBuf.size() + inLen < 8) {
 			cmdInfo.fBuf.append(inBuf, inLen);
@@ -47,11 +48,12 @@ int CommandCenter::fill(SOCKET socket, char* inBuf, int inLen)
 	}
 
 	if (inLen >= cmdInfo.fNeededLen) {
-		handleCommand(socket, cmdInfo.fBuf, inBuf, inLen);
+		cmdInfo.fBuf.append(inBuf, cmdInfo.fNeededLen);
+		postCommand(socket, cmdInfo.fBuf);
+		assert(cmdInfo.fBuf.empty());
 		inBuf += cmdInfo.fNeededLen;
 		inLen -= cmdInfo.fNeededLen;
 		cmdInfo.fNeededLen = -1;
-		cmdInfo.fBuf.clear();
 		if (inLen == 0) {
 			queueRecvCmdRequest(socket);
 			return 0;
@@ -66,19 +68,59 @@ int CommandCenter::fill(SOCKET socket, char* inBuf, int inLen)
 	return 0;
 }
 
-int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf, char* inBuf, int inLen)
+void CommandCenter::postCommand(SOCKET socket, buffer& cmdBuf)
 {
-	char* buf = nullptr;
-	int len = 0;
-	if (cmdBuf.empty()) {
-		buf = inBuf;
-		len = inLen;
-	} else {
-		cmdBuf.append(inBuf, inLen);
-		buf = cmdBuf.data();
-		len = cmdBuf.size();
+	std::unique_lock<std::mutex> lock(mutex_);
+	TRACE_IF(LOG_SERVER,"post command socket: %d, cmdBuf: %x, len: %d, after len = %d\n", socket, 
+			cmdBuf.data(), cmdBuf.size(), cmdQueue_.size() + 1);
+	cmdQueue_.push_back(CommandRequest(socket, cmdBuf));
+	cv_.notify_one();
+}
+
+void CommandCenter::start()
+{
+	int threadCount = base::Utils::GetCpuCount() * 2;
+	quit_ = false;
+	for (int i = 0; i < threadCount; ++i) {
+		threads_.push_back(std::thread(&CommandCenter::threadFun, this));
 	}
-	SockStream stream(buf, len);
+}
+
+void CommandCenter::threadFun()
+{
+	while (!quit_) {
+		SOCKET s;
+		buffer buf;
+		{
+			std::unique_lock<std::mutex> lock(mutex_);
+			while (cmdQueue_.empty()) {
+				cv_.wait(lock);
+			}
+			TRACE_IF(LOG_SERVER,"before pick the queue size = %d\n", cmdQueue_.size());
+			s = cmdQueue_.front().fSock;
+			buf.swap(cmdQueue_.front().fBuf);
+			cmdQueue_.pop_front();
+			TRACE_IF(LOG_SERVER,"pick command socket: %d, cmdBuf: %x, len: %d, after len = %d\n", s, 
+					buf.data(), buf.size(), cmdQueue_.size());
+
+		}
+		handleCommand(s, buf);
+	}
+}
+
+void CommandCenter::quit()
+{
+	quit_ = true;
+	for (auto& thread : threads_) {
+		thread.join();
+	}
+}
+
+int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf)
+{
+	TRACE_IF(LOG_SERVER,"handle command for socket: %d, cmdBuf: %x, size: %d\n",
+			socket, cmdBuf.data(), cmdBuf.size());
+	SockStream stream(cmdBuf.data(), cmdBuf.size());
 	int type = stream.getInt();
 	switch (type) {
 	case net::kCommandType_BuildPathAck:
@@ -148,7 +190,11 @@ void CommandCenter::onCmdLogin(SOCKET socket, SockStream& stream)
 	auto email = stream.getString();
 	auto password = stream.getString();
 	User user;
+#if TEST_MODE
+	if (true) {
+#else
 	if (user.login(authType, email, password) == H_OK) {
+#endif
 		auto client = new Client(user, socket);
 		clientMan_.addClient(email, client);
 		SockStream stream;
@@ -209,6 +255,8 @@ HERRCODE CommandCenter::onCmdMessage(SOCKET socket, SockStream& is)
 	if (recver == u"all") {
 		std::lock_guard<std::recursive_mutex> lock(clientMan_.fMutex);
 		for (auto& item : clientMan_.fClientMap) {
+			//TRACE_IF(LOG_SERVER, "send message to all\n");
+			//puts("send message to all\n");
 			queueSendRequest(item.second->getSocket(), os);
 		}
 		{
@@ -253,11 +301,9 @@ void CommandCenter::onCmdFileCheck(SOCKET socket, int id, const std::vector<std:
 
 void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
 {
-	TRACE("send socket %d stream size : %d, content: %s\n", socket, stream.getSize(), stream.toHexString().c_str());
-	auto size = send(socket, stream.getBuf(), stream.getSize(), 0);
-	if (size == -1) {
-		TRACE("send error %s\n", strerror(errno));
-	}
+	TRACE_IF(LOG_SERVER,"send socket %d stream size : %d, content: %s\n",
+		   	socket, stream.getSize(), stream.toHexString().c_str());
+	server_->queueSendRequest(socket, stream);
 }
 
 void CommandCenter::updateUserlist()
@@ -381,36 +427,45 @@ void CommandCenter::onCmdFileTransferRequestAck(SOCKET socket, SockStream& strea
 	queueSendRequest(clientSock, s);
 }
 
-void CommandCenter::onCmdBuildP2pPath(SOCKET socket, SockStream& is)
+HERRCODE CommandCenter::onCmdBuildP2pPath(SOCKET socket, SockStream& is)
 {
-	auto size = is.getInt();
-	auto id = is.getInt64();
-	auto recver = is.getString();
-	auto localIp = is.getInt();
-	auto tcpPort = is.getShort();
-	sockaddr_in publicIp;
-	socklen_t nameLen = sizeof(sockaddr_in);
-	if (getpeername(socket, (sockaddr*)&publicIp, &nameLen)) {
-		//error handle
-		return;
+	int size;
+	int64_t id;
+	std::u16string sender;
+	std::u16string authKey;
+	std::u16string recver;
+	int localIp;
+	short localPort;
+	try {
+		size = is.getInt();
+		if (size != is.getSize()) {
+			return H_NETWORK_ERROR;
+		}
+		id = is.getInt64();
+		sender = is.getString();
+		authKey = is.getString();
+		recver = is.getString();
+		localIp = is.getInt();
+		localPort = is.getInt();
+	} catch (...) {
+		return H_NETWORK_ERROR;
 	}
 
-	std::u16string sender;
-	auto hr = clientMan_.getEmailBySocket(socket, &sender);
-	if (hr != H_OK)
-		return;
+	User user;
+	if (!user.login(net::kLoginType_Auto, sender, authKey)) {
+		return H_AUTH_FAILED;
+	}
+
+	sockaddr_in publicAddr;
+	socklen_t nameLen = sizeof(sockaddr_in);
+	if (getpeername(socket, (sockaddr*)&publicAddr, &nameLen)) {
+		return H_NETWORK_ERROR;
+	}
 
 	SOCKET recvSock;
-	hr = clientMan_.getClientSocket(recver, &recvSock);
+	auto hr = clientMan_.getClientSocket(recver, &recvSock);
 	if (hr != H_OK)
-		return;
-
-	sockaddr_in recvPubIp;
-	nameLen = sizeof(sockaddr_in);
-	if (getpeername(recvSock, (sockaddr*)&recvPubIp, &nameLen)) {
-		//error handle
-		return;
-	}
+		return H_FAILED;
 
 	SockStream os;
 	os.writeInt(net::kCommandType_BuildPath);
@@ -418,9 +473,9 @@ void CommandCenter::onCmdBuildP2pPath(SOCKET socket, SockStream& is)
 	os.writeInt64(id);
 	os.writeString(sender);
 	os.writeInt(localIp);
-	os.writeInt(publicIp.sin_addr.s_addr);
-	os.writeShort(tcpPort);
-	os.writeInt(recvPubIp.sin_addr.s_addr);
+	os.writeShort(localPort);
+	os.writeInt(publicAddr.sin_addr.s_addr);
+	os.writeShort(publicAddr.sin_port);
 	os.flushSize();
 	queueSendRequest(recvSock, os);
 }

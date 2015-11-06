@@ -32,23 +32,33 @@ namespace avc
 	{
 		quit_ = false;
 		sock_ = -1;
-		listenSock_ = -1;
 		kq_ = -1;
 		controller_ = NULL;
 		serverPort_ = -1;
+		ownkq_ = false;
 	}
 
 	ChatClient::~ChatClient()
 	{
 		quit(true);
+		if (sock_ != -1)
+			close(sock_);
+		if (kq_ != -1 && ownkq_)
+			close(kq_);
 	}
 
-	HERRCODE ChatClient::init(const std::u16string& serverAddr, int port)
+	HERRCODE ChatClient::init(int kq, const std::u16string& serverAddr, int port)
 	{
+		kq_ = kq;
 		serverAddr_ = serverAddr;
 		serverPort_ = port;
+		struct rlimit rl;
+		if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
+			return H_FAILED;
+		rl.rlim_cur = 10240;
+		if (setrlimit(RLIMIT_NOFILE, &rl) < 0)
+			return H_FAILED;
 		return H_OK;
-		//		return initSock();
 	}
 
 	HERRCODE ChatClient::autoLogin(const std::u16string& username, const std::u16string& token)
@@ -61,9 +71,39 @@ namespace avc
 		return loginImpl(net::kLoginType_Normal, username, password);
 	}
 
-	void ChatClient::queueSendRequest(SOCKET socket, SockStream& stream) 
+	HERRCODE ChatClient::queueSendRequest(SOCKET sock, SockStream& stream)
 	{
-		send(socket, stream.getBuf(), stream.getSize(), 0);
+		std::lock_guard<std::mutex> guard(sendMutex_);
+		auto& buffer = sendBuf_[sock];
+		if (!buffer.empty()) {
+			buffer.append(stream.getBuf(), stream.getSize());
+			return H_OK;
+		} else {
+			int rc = send(sock, stream.getBuf(), stream.getSize(), 0);
+			if (rc > 0) {
+				if (rc == stream.getSize()) {
+					printf("send request directly done %d\n", stream.getSize());
+					return H_OK;
+				} else {
+					buffer.append(stream.getBuf() + rc, stream.getSize() - rc);
+					if (!setWatchOut(sock, true))
+						return H_FAILED;
+					else
+						return H_OK;
+				}
+			} else {
+				if (errno != EAGAIN) {
+					//fixme: need handle ENOTBUFS/EPIPE ?
+					fprintf(stderr, "send failed errno: %d, %s\n", errno, strerror(errno));
+					return H_FAILED;
+				}
+				buffer.append(stream.getBuf(), stream.getSize());
+				if (!setWatchOut(sock, true))
+					return H_FAILED;
+				else
+					return H_OK;
+			}
+		}
 	}
 
 	HERRCODE ChatClient::sendMessage(const std::u16string& username, const std::u16string& message, time_t timestamp)
@@ -154,67 +194,37 @@ namespace avc
 			if (eventCount > 0) {
 				for (int i = 0; i < eventCount; ++i) {
 					if (events_[i].flags & EV_EOF) {
-						perror("remote sock shutdown\n");
+						syslog(LOG_ERR, "remote sock shutdown\n");
 						close(events_[i].ident);
 						continue;
 					}
 					if (events_[i].flags & EV_ERROR) {
-						fprintf(stderr, "kqueue ev_error : %s\n", strerror(events_[i].data));
+						syslog(LOG_ERR, "kqueue ev_error : %s\n", strerror(events_[i].data));
 						close(events_[i].ident);
 						continue;
 					}
-					if (events_[i].ident == listenSock_) {
+					if (events_[i].filter == EVFILT_WRITE) {
+						handleConnect();
+					} else if (events_[i].filter == EVFILT_READ) {
+						buffer buf(1024);
+						size_t len = 1024;
+						bool done = false;
 						while (true) {
-							TRACE("event events flags = %d\n", events_[i].flags);
-							sockaddr_in remoteAddr;
-							socklen_t addrLen = sizeof(sockaddr_in);
-							auto clientfd = accept(listenSock_, (sockaddr*)&remoteAddr, &addrLen);
-							if (clientfd != -1) {
-								auto rc = base::Utils::MakeSocketNonBlocking(clientfd);
-								acceptedRequest_++;
-#if LOG_LOGIN
-								char str[20];
-								inet_ntop(AF_INET, &remoteAddr.sin_addr, str, 20);
-								TRACE_IF(LOG_LOGIN, "%d recv connection from %s, thread id = %d\n",
-										(int)acceptedRequest_, str, std::this_thread::get_id());
-#endif
-								struct kevent ev;
-								EV_SET(&ev, clientfd, EVFILT_READ, EV_ADD, 0, 0, 0);
-								if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
-									perror("kevent bind clientfd failed\n");
-									close(clientfd);
-									continue;
+							auto rc = recv(events_[i].ident, buf.data(), len, 0);
+							if (rc == -1) {
+								if (errno != EAGAIN) {
+									syslog(LOG_ERR, "read");
+									done = true;
 								}
-							} else {
-								if (errno != EAGAIN && errno != EWOULDBLOCK)
-									perror("accept error\n");
+								break;
+							} else if (rc == 0) {
+								done = true;
 								break;
 							}
+							cmdCenter_.fill(events_[i].ident, buf.data(), rc);
 						}
-					} else {
-						if (events_[i].filter == EVFILT_WRITE) {
-							handleConnect();
-						} else if (events_[i].filter == EVFILT_READ) {
-							buffer buf(1024);
-							size_t len = 1024;
-							bool done = false;
-							while (true) {
-								auto rc = recv(events_[i].ident, buf.data(), len, 0);
-								if (rc == -1) {
-									if (errno != EAGAIN) {
-										perror("read");
-										done = true;
-									}
-									break;
-								} else if (rc == 0) {
-									done = true;
-									break;
-								}
-								cmdCenter_.fill(events_[i].ident, buf.data(), rc);
-							}
-							if (done) {
-								close(events_[i].ident);
-							}
+						if (done) {
+							close(events_[i].ident);
 						}
 					}
 				}
@@ -249,7 +259,6 @@ namespace avc
 
 	void ChatClient::start()
 	{
-		//int threadCount = base::Utils::GetCpuCount() * 2;
 		int threadCount = 1;
 		for (int i = 0; i < threadCount; ++i){
 			threads_.push_back(std::thread(&ChatClient::threadFun, this, i == 0));
@@ -275,40 +284,54 @@ namespace avc
 		loginRequest_.password = credential;
 		email_ = username;
 
-		initSock();
+		auto rc = initSock();
+		if (rc != H_OK)
+			return rc;
 		sockaddr_in addr = { 0 };
 		addr.sin_port = htons(serverPort_);
 		addr.sin_family = AF_INET;
 		in_addr iaddr;
 		auto uServerAddr = su::u16to8(serverAddr_);
-		if (inet_pton(AF_INET, uServerAddr.c_str(), &iaddr) != 1)
+		if (inet_pton(AF_INET, uServerAddr.c_str(), &iaddr) != 1) {
+			syslog(LOG_ERR, "network address translate failed\n");
 			return H_NETWORK_ERROR;
+		}
 		addr.sin_addr = iaddr;
 		auto err = connect(sock_, (const sockaddr*)&addr, sizeof(sockaddr_in));
-		if (err == -1) {
-			if (errno == EINPROGRESS) {
-				if (kq_ == -1) {
-					kq_ = kqueue();
-					if (kq_ == -1)
-						return H_SERVER_ERROR;
-				}
-				struct kevent ev;
-				EV_SET(&ev, sock_, EVFILT_WRITE, EV_ADD, 0, 0, 0);
-				if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
-					perror("kqueue sock_ add failed\n");
-					close(sock_);
-					sock_ = -1;
-					return H_NETWORK_ERROR;
-				}
-				start();
-			} else {
-				openlog("chatclient", LOG_PID|LOG_CONS, LOG_USER);
-				syslog(LOG_ERR, "connect errrno %d\n", errno);
-				closelog();
+		if (err == 0) {
+			struct kevent ev;
+			EV_SET(&ev, sock_, EVFILT_READ, EV_ADD, 0, 0, 0);
+			if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
+				syslog(LOG_ERR, "kqeueue change client socket failed\n");
+				close(sock_);
+				sock_ = -1;
 				return H_NETWORK_ERROR;
 			}
+			syslog(LOG_DEBUG, "kqueue add socket %d filt-read succeeded\n", sock_);
+		} else if (err == -1 && errno != EINPROGRESS) {
+			syslog(LOG_ERR, "connect errrno %d, %s\n", errno, strerror(errno));
+			return H_NETWORK_ERROR;
 		} else {
-			start();
+			if (kq_ == -1) {
+				kq_ = kqueue();
+				if (kq_ == -1) {
+					syslog(LOG_ERR, "kqueue create failed\n");
+					return H_SERVER_ERROR;
+				}
+				ownkq_ = true;
+			}
+			struct kevent ev;
+			EV_SET(&ev, sock_, EVFILT_WRITE, EV_ADD, 0, 0, 0);
+			if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
+				syslog(LOG_ERR, "kqueue %d add socket %d filt-write failed errno: %d, %s\n", 
+						kq_, sock_, errno, strerror(errno));
+				close(sock_);
+				sock_ = -1;
+				return H_NETWORK_ERROR;
+			} else {
+				syslog(LOG_DEBUG, "kqueue %d add socket %d filt-write succeeded\n", 
+						kq_, sock_);
+			}
 		}
 		return H_OK;
 	}
@@ -322,18 +345,19 @@ namespace avc
 			return H_NETWORK_ERROR;
 		}
 
-                struct kevent ev;
-                EV_SET(&ev, sock_, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
-                if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
-                        perror("kqeueue change client socket failed\n");
-                        close(sock_);
-                        sock_ = -1;
-                        return H_NETWORK_ERROR;
-                }
+		struct kevent ev;
+		EV_SET(&ev, sock_, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
+		if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
+			syslog(LOG_ERR, "kqeueue change client socket %d, failed, errno: %d, %s\n",
+				   	sock_, errno, strerror(errno));
+			close(sock_);
+			sock_ = -1;
+			return H_NETWORK_ERROR;
+		}
 
 		EV_SET(&ev, sock_, EVFILT_READ, EV_ADD, 0, 0, 0);
 		if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
-			perror("kqeueue change client socket failed\n");
+			syslog(LOG_ERR, "kqeueue change client socket failed\n");
 			close(sock_);
 			sock_ = -1;
 			return H_NETWORK_ERROR;
@@ -368,10 +392,15 @@ namespace avc
 	HERRCODE ChatClient::initSock()
 	{
 		sock_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		if (sock_ == -1)
+		if (sock_ == -1) {
+			syslog(LOG_ERR, "cannot create socket error: %d, %s\n", errno, strerror(errno));
 			return H_NETWORK_ERROR;
-		if (base::Utils::MakeSocketNonBlocking(sock_) < 0)
+		}
+		syslog(LOG_DEBUG, "created socket %d\n", sock_);
+		if (base::Utils::MakeSocketNonBlocking(sock_) < 0) {
+			syslog(LOG_ERR, "cannot make socket nonblocking\n");
 			return H_NETWORK_ERROR;
+		}
 		return H_OK;
 	}
 
@@ -379,4 +408,54 @@ namespace avc
 	{
 		return peerMan_;
 	}
+
+	bool ChatClient::sendRequest(SOCKET sock, int len)
+	{
+		std::lock_guard<std::mutex> guard(sendMutex_);
+		auto& buf = sendBuf_[sock];
+		assert(!buf.empty());
+		if (len > buf.size())
+			len = buf.size();
+		int rc = send(sock, buf.data(), len, 0);
+		if (rc > 0) {
+			if (rc == buf.size()) {
+				buf.clear();
+				if (!setWatchOut(sock, false))
+					return false;
+				return true;
+			} else {
+				auto rptr = buf.data() + rc;
+				auto rlen = buf.size() - rc;
+				buf.detach();
+				buf.assign(rptr, rlen);
+				return true;
+			}
+		} else {
+			if (errno != EAGAIN) {
+				//fixme: need handle ENOTBUFS/EPIPE ?
+				fprintf(stderr, "send failed errno: %d, %s\n", errno, strerror(errno));
+				return false;
+			}
+			return true;
+		}
+	}
+
+	bool ChatClient::setWatchOut(SOCKET sock, bool watch)
+	{
+		struct kevent ev;
+		EV_SET(&ev, sock, EVFILT_WRITE,
+				(watch ? EV_ADD : EV_DELETE), 0, 0, 0);
+		if (kevent(kq_, &ev, 1, NULL, 0, NULL) < 0) {
+			perror("set clientfd kqueue write failed\n");
+			return false;
+		}
+		return true;
+	}
+
+	CommandCenter& ChatClient::cmdCenter()
+	{
+		return cmdCenter_;
+	}
+
 }
+

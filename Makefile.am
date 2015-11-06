@@ -60,7 +60,7 @@ libchatclient_a_SOURCES = \
 						  chatclient/LoginError.h \
 						  chatclient/LoginError.cpp
 
-bin_PROGRAMS = server chattest
+bin_PROGRAMS = server test 
 server_SOURCES = \
 				 chatserver/stdafx.h \
 				 chatserver/CommandCenter.h \
@@ -83,10 +83,16 @@ server_SOURCES = \
 				 chatserver/ClientManager.cpp \
 				 chatserver/FileMan.cpp \
 				 chatserver/Utils.cpp
-server_LDADD = $(MYSQL_LDFLAGS) -lmysqlcppconn-static -lmysqlclient -lcryptopp -lconfig libcommon.a 
-#server_LDFLAGS = -z defs
-server_CXXFLAGS = $(AM_CXXFLAGS) $(MYSQL_CFLAGS) $(CRYPTOPP_CFLAGS)
+test_SOURCES = \
+				chattest/main.cpp \
+				chattest/ChatClientController.h \
+				chattest/ChatClientController.cpp
 
-chattest_SOURCES = \
-				  chatclient/client.cpp 
-chattest_LDADD = libchatclient.a libcommon.a 
+server_LDADD = libcommon.a $(MYSQL_LDFLAGS) -lmysqlcppconn-static -lmysqlclient -lcryptopp -lconfig 
+server_CXXFLAGS = $(AM_CXXFLAGS) $(MYSQL_CFLAGS) $(CRYPTOPP_CFLAGS)
+server_DEPENDENCIES = libcommon.a
+
+test_LDADD = libchatclient.a libcommon.a $(CRYPTOPP_LDFLAGS) -lcryptopp 
+test_CXXFLAGS = $(AM_CXXFLAGS)  $(CRYPTOPP_CFLAGS)
+test_DEPENDENCIES = libchatclient.a libcommon.a
+

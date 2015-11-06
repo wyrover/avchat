@@ -39,6 +39,8 @@ namespace avc
 
 	void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
 	{
+		TRACE("send socket %d stream size : %d, content: %s\n",
+				socket, stream.getSize(), stream.toHexString().c_str());
 		send(socket, stream.getBuf(), stream.getSize(), 0);
 	}
 

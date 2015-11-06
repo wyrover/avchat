@@ -3,7 +3,6 @@
 #include "ClientManager.h"
 #include "User.h"
 
-
 ClientManager::ClientManager()
 {
 }
@@ -23,8 +22,21 @@ HERRCODE ClientManager::addClient(const std::u16string& email, Client* client)
 HERRCODE ClientManager::removeClient(const std::u16string& email)
 {
 	std::lock_guard<std::recursive_mutex> lock(fMutex);
-	auto client = fClientMap[email];
 	fClientMap.erase(email);
+	return H_OK;
+}
+
+HERRCODE ClientManager::setClientAddr(const std::u16string& email, const std::u16string& authKey,
+				const sockaddr_in& localAddr, const sockaddr_in& publicAddr)
+{
+	std::lock_guard<std::recursive_mutex> lock(fMutex);
+	if(!fClientMap.count(email))
+		return H_FAILED;
+	auto& client = fClientMap[email];
+	if (client->getAuthKey() != authKey) {
+		return H_AUTH_FAILED;
+	} 
+	client->setAddr(localAddr, publicAddr);
 	return H_OK;
 }
 
