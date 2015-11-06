@@ -2,6 +2,7 @@
 
 #include "User.h"
 #include <arpa/inet.h>
+#include <netinet/in.h>
 class Client
 {
 public:

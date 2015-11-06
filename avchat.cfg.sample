@@ -1,4 +1,14 @@
-url = "tcp://127.0.0.1:3306"
-user = "root";
-password = "MyNewPass";
-dbName = "avchat";
+mysql = 
+{
+	url = "tcp://127.0.0.1:3306"
+	user = "root";
+	password = "MyNewPass";
+	dbName = "avchat";
+};
+
+server = 
+{
+	ip = "";
+	holePort = "2334";
+	dataPort = "2333";
+};

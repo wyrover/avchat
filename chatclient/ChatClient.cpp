@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/event.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <syslog.h>
