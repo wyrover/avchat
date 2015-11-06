@@ -3,15 +3,17 @@
 
 #include "stdafx.h"
 #include <stdint.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/resource.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <thread>
 #include <sstream>
-#include <stdio.h>
+#include <algorithm>
 #include <libconfig.h>
 #include "unixserver.h"
 #include "Utils.h"
@@ -50,9 +52,11 @@ HERRCODE ChatServer::start()
 	struct rlimit rl;
 	if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
 		return H_SERVER_ERROR;
-	rl.rlim_cur = 10240;
-	if (setrlimit(RLIMIT_NOFILE, &rl) < 0)
+	rl.rlim_cur = std::max<rlim_t>(10240, rl.rlim_max);
+	if (setrlimit(RLIMIT_NOFILE, &rl) < 0) {
+		fprintf(stderr, "setrlimit for file handle failed errno: %d, %s\n", errno, strerror(errno));
 		return H_SERVER_ERROR;
+	}
 	
 	config_t cfg;
 	config_setting_t *settings;
