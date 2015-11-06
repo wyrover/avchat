@@ -60,7 +60,7 @@ libchatclient_a_SOURCES = \
 	chatclient/LoginError.h \
 	chatclient/LoginError.cpp
 
-bin_PROGRAMS = server chattest
+bin_PROGRAMS = server test
 server_SOURCES = \
 	chatserver/stdafx.h \
 	chatserver/CommandCenter.h \

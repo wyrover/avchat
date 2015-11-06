@@ -40,7 +40,7 @@ namespace avc
 		public:
 			ChatClient();
 			~ChatClient();
-			HERRCODE init(int kq, const std::u16string& serverAddr, int port);
+			HERRCODE init(const std::u16string& serverAddr, int port, int kq = -1);
 			HERRCODE login(const std::u16string& username, const std::u16string& password);
 			HERRCODE autoLogin(const std::u16string& username, const std::u16string& token);
 			HERRCODE sendMessage(const std::u16string& username, const std::u16string& message, time_t timestamp);
@@ -66,7 +66,7 @@ namespace avc
 		private:
 			HERRCODE loginImpl(int type, const std::u16string& username, const std::u16string& credential);
 			HERRCODE handleConnect();
-			void threadFun(bool initRecv);
+            void threadFun();
 			void quit(bool wait);
 			HERRCODE initSock();
 			bool setWatchOut(SOCKET sock, bool watch);
@@ -88,7 +88,8 @@ namespace avc
 			std::mutex sendMutex_;
 
 			int kq_;
-			bool ownkq_;
+            bool ownkq_;
+            bool connected_;
 			int serverPort_;
 			std::u16string serverAddr_;
 			LoginRequest loginRequest_;

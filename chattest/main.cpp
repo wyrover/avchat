@@ -19,7 +19,7 @@
 #include "../common/StringUtils.h"
 #include "ChatClientController.h"
 
-#define SERVER_ADDRESS u"192.168.134.129"
+#define SERVER_ADDRESS u"192.168.134.125"
 
 volatile bool quit = false;
 
@@ -29,7 +29,7 @@ namespace test1
 	{
 		auto controller = new ChatClientController();
 		std::unique_ptr<avc::ChatClient> client(new avc::ChatClient());
-		if (client->init(kq, SERVER_ADDRESS, 2333) != H_OK) {
+		if (client->init(SERVER_ADDRESS, 2333, kq) != H_OK) {
 			syslog(LOG_ERR, "init error\n");
 			return;
 		}
@@ -71,7 +71,7 @@ namespace test2
 		std::vector<std::shared_ptr<avc::ChatClient>> clients;
 		for (int i = 0; i < 10; ++i) {
 			std::shared_ptr<avc::ChatClient> client(new avc::ChatClient());
-			if (client->init(kq, SERVER_ADDRESS, 2333) != H_OK) {
+			if (client->init(SERVER_ADDRESS, 2333, kq) != H_OK) {
 				syslog(LOG_ERR, "init error\n");
 				return -1;
 			}
@@ -197,7 +197,7 @@ int simpletest()
 	auto controller = new ChatClientController();
 	int kq = kqueue();
 	std::unique_ptr<avc::ChatClient> client(new avc::ChatClient());
-	if (client->init(kq, SERVER_ADDRESS, 2333) != H_OK) {
+	if (client->init(SERVER_ADDRESS, 2333, kq) != H_OK) {
 		syslog(LOG_ERR, "init error\n");
 		return -1;
 	}
