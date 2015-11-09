@@ -195,8 +195,14 @@ bool Utils::IsImage(buffer& buf)
 }
 
 
-bool Utils::IsImageExt(const std::u16string& ext)
+bool Utils::IsImageExt(const std::u16string& aExt)
 {
+	if (aExt.empty())
+		return false;
+	auto ext = aExt;
+	if (aExt[0] == '.')
+		ext = aExt.substr(1);
+	
 	return std::find_if(kImageExts.begin(), kImageExts.end(), [&ext](const std::u16string& item) {
 		return su::tolower(item) == su::tolower(ext); }) != kImageExts.end();
 }

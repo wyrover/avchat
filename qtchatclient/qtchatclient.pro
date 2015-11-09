@@ -3,7 +3,7 @@ TARGET = qtchatclient
 QT += core gui widgets
 CONFIG += c++11
 QMAKE_CXXFLAGS += -pthread
-LIBS += -L../ -lchatclient -lcommon -L/usr/local/Cellar/cryptopp/5.6.2/lib -lcryptopp -pthread
+LIBS += -L../ -lchatclient -lcommon -L/usr/local/Cellar/cryptopp/5.6.2/lib -lcryptopp -lxml2 -pthread
 TARGETDEPS += ../libcommon.a ../libchatclient.a
 # Input
 HEADERS += \
@@ -38,7 +38,7 @@ HEADERS += \
            ../chatclient/TcpPeerManager.h \
            ../chatclient/MessageError.h \
            ../chatclient/ChatError.h \
-           ../chatclient/Utils.h
+           ../chatclient/XmlUtils.h
 FORMS += filetransfer.ui \
          filetransitem.ui \
          ImageViewer.ui \

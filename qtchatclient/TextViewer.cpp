@@ -10,7 +10,7 @@
 #include <QSignalMapper>
 #include "ImageViewer.h"
 #include "../common/trace.h"
-#include "../chatclient/Utils.h"
+#include "../chatclient/XmlUtils.h"
 const static QSize kAvatarSize(30, 30);
 
 #if _DEBUG
@@ -149,7 +149,7 @@ void TextViewer::addBubbleTextFrame(const QString& username, const QString& mess
 	if (message.indexOf("<img") != -1) {
 		std::vector<std::u16string> imageList;
 		std::u16string qtMessage;
-		avc::Utils::XmlMessageToQtMessage(message.toStdU16String(), &imageList, &qtMessage);
+        avc::XmlUtils::XmlMessageToQtMessage(message.toStdU16String(), &imageList, &qtMessage);
 		int index = 0;
 		int pos = -1;
 		int imageIndex = 0;

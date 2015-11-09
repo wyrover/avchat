@@ -13,7 +13,7 @@
 #include "../common/Utils.h"
 #include "../common/StringUtils.h"
 
-#include "Utils.h"
+#include "XmlUtils.h"
 #include "CommandCenter.h"
 #include "IChatClientController.h"
 #include "ImageMessageForSend.h"
@@ -22,44 +22,28 @@
 #include "ChatClient.h"
 #include "ErrorManager.h"
 
-using avc::Utils;
+#define LOG_CMD 0
+
 
 namespace avc
 {
 	CommandCenter::CommandCenter()
 	{
 		controller_ = nullptr;
+		quit_ = false;
+		client_ = nullptr;
 	}
 
 	CommandCenter::~CommandCenter()
-	{
-	}
-
-	void CommandCenter::queueRecvCmdRequest(SOCKET socket)
-	{
-	}
-
-	void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
-	{
-		TRACE("send socket %d stream size : %d, content: %s\n",
-				socket, stream.getSize(), stream.toHexString().c_str());
-		send(socket, stream.getBuf(), stream.getSize(), 0);
+        {
+            quit();
 	}
 
 	int CommandCenter::fill(SOCKET socket, char* inBuf, int inLen)
 	{
 		if (inLen == 0)
 			return 0;
-
-		mapMutex_.lock();
 		auto& cmdInfo = cmdMap_[socket];
-		mapMutex_.unlock();
-		std::lock_guard<std::recursive_mutex> locker(cmdInfo.fMutex);
-
-		assert(inLen > 0);
-		syslog(LOG_INFO, "client fill %d content: %s, prev buf len: %zu\n", inLen,
-				su::buf2string((unsigned char*)inBuf, inLen).c_str(), cmdInfo.fBuf.size());
-
 		if (cmdInfo.fNeededLen == -1) {
 			if (cmdInfo.fBuf.size() + inLen < 8) {
 				cmdInfo.fBuf.append(inBuf, inLen);
@@ -69,10 +53,8 @@ namespace avc
 				int needLen = 8 - cmdInfo.fBuf.size();
 				cmdInfo.fBuf.append(inBuf, needLen);
 				SockStream stream(cmdInfo.fBuf.data(), cmdInfo.fBuf.size());
-				auto cmdType = stream.getInt(); // type
+				stream.getInt(); // type
 				cmdInfo.fNeededLen = stream.getInt() - 8;
-				syslog(LOG_INFO, "cmd neededlen = %d, cmdType = %d\n", cmdInfo.fNeededLen, cmdType);
-				assert(cmdInfo.fNeededLen > 0);
 				inBuf += needLen;
 				inLen -= needLen;
 			}
@@ -80,11 +62,11 @@ namespace avc
 
 		if (inLen >= cmdInfo.fNeededLen) {
 			cmdInfo.fBuf.append(inBuf, cmdInfo.fNeededLen);
-			handleCommand(socket, cmdInfo.fBuf);
+			postCommand(socket, cmdInfo.fBuf);
+			assert(cmdInfo.fBuf.empty());
 			inBuf += cmdInfo.fNeededLen;
 			inLen -= cmdInfo.fNeededLen;
 			cmdInfo.fNeededLen = -1;
-			cmdInfo.fBuf.clear();
 			if (inLen == 0) {
 				queueRecvCmdRequest(socket);
 				return 0;
@@ -99,6 +81,62 @@ namespace avc
 		return 0;
 	}
 
+	void CommandCenter::postCommand(SOCKET socket, buffer& cmdBuf)
+	{
+		std::unique_lock<std::mutex> lock(mutex_);
+		TRACE_IF(LOG_CMD,"post command socket: %d, cmdBuf: %x, len: %d, after len = %d\n", socket, 
+				cmdBuf.data(), cmdBuf.size(), cmdQueue_.size() + 1);
+		cmdQueue_.push_back(CommandRequest(socket, cmdBuf));
+		cv_.notify_one();
+	}
+
+	void CommandCenter::start()
+	{
+		int threadCount = base::Utils::GetCpuCount() * 2;
+		quit_ = false;
+		for (int i = 0; i < threadCount; ++i) {
+			threads_.push_back(std::thread(&CommandCenter::threadFun, this));
+		}
+	}
+
+	void CommandCenter::threadFun()
+	{
+		while (!quit_) {
+			SOCKET s;
+			buffer buf;
+			{
+				std::unique_lock<std::mutex> lock(mutex_);
+                                while (cmdQueue_.empty() && !quit_) {
+					cv_.wait(lock);
+                                }
+                                if (quit_) {
+                                    break;
+                                }
+				TRACE_IF(LOG_CMD,"before pick the queue size = %d\n", cmdQueue_.size());
+				s = cmdQueue_.front().fSock;
+				buf.swap(cmdQueue_.front().fBuf);
+				cmdQueue_.pop_front();
+				TRACE_IF(LOG_CMD,"pick command socket: %d, cmdBuf: %x, len: %d, after len = %d\n", s, 
+						buf.data(), buf.size(), cmdQueue_.size());
+
+			}
+			handleCommand(s, buf);
+		}
+	}
+
+	void CommandCenter::quit()
+	{
+                quit_ = true;
+                cv_.notify_all();
+		for (auto& thread : threads_) {
+			thread.join();
+		}
+	}
+
+	void CommandCenter::queueRecvCmdRequest(SOCKET socket)
+	{
+	}
+
 	int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf)
 	{
 		char* buf = nullptr;
@@ -108,80 +146,155 @@ namespace avc
 		SockStream stream(buf, len);
 		int type = stream.getInt();
 		switch (type) {
+			case net::kCommandType_ImageMessage:
+			{
+				onCmdImageMessage(socket, stream);
+				break;
+			}
 			case net::kCommandType_LoginAck:
-				{
-					syslog(LOG_INFO, "client loginack size = %zu\n", stream.getSize());
-					onCmdLoginAck(socket, stream);
-					break;
-				}
+			{
+				syslog(LOG_INFO, "client loginack size = %zu\n", stream.getSize());
+				onCmdLoginAck(socket, stream);
+				break;
+			}
 			case net::kCommandType_Message:
-				{
-					syslog(LOG_INFO, "client message size = %zu\n", stream.getSize());
-					onCmdMessage(socket, stream);
-					break;
-				}
+			{
+				syslog(LOG_INFO, "client message size = %zu\n", stream.getSize());
+				onCmdMessage(socket, stream);
+				break;
+			}
 			case net::kCommandType_UserList:
-				{
-					syslog(LOG_INFO, "client userlist size = %zu\n", stream.getSize());
-					onCmdUserList(socket, stream);
-					break;
-				}
+			{
+				syslog(LOG_INFO, "client userlist size = %zu\n", stream.getSize());
+				onCmdUserList(socket, stream);
+				break;
+			}
 			case net::kCommandType_FileExistsAck:
-				{
-					auto size = stream.getInt();
-					ImageMessageForSend* msg = (ImageMessageForSend*)stream.getPtr();
-					auto urlList = stream.getStringVec();
-					onCmdFileCheckAck(socket, msg, urlList);
-					break;
-				}
+			{
+				onCmdFileCheckAck(socket, stream);
+				break;
+			}
 			case net::kCommandType_FileUploadAck:
-				{
-					auto size = stream.getInt();
-					ImageMessageForSend* msg = (ImageMessageForSend*)stream.getPtr();
-					auto urlList = stream.getStringVec();
-					onCmdFileUploadAck(socket, msg, urlList);
-					break;
-				}
+			{
+				onCmdFileUploadAck(socket, stream);
+				break;
+			}
 			case net::kCommandType_FileDownloadAck:
-				{
-					onCmdFileDownloadAck(socket, stream);
-					break;
-				}
+			{
+				onCmdFileDownloadAck(socket, stream);
+				break;
+			}
 			case net::kCommandType_MessageAck:
-				{
-					onCmdMessageAck(socket, stream);
-					break;
-				}
+			{
+				onCmdMessageAck(socket, stream);
+				break;
+			}
 			case net::kCommandType_FileTransferRequest:
-				{
-					onCmdFileTransferRequest(socket, stream);
-					break;
-				}
+			{
+				onCmdFileTransferRequest(socket, stream);
+				break;
+			}
 			case net::kCommandType_FileTransferRequestAck:
-				{
-					onCmdFileTransferRequestAck(socket, stream);
-					break;
-				}
+			{
+				onCmdFileTransferRequestAck(socket, stream);
+				break;
+			}
 			case net::kCommandType_BuildPath:
-				{
-					client_->peerMan().onCmdBuildP2pPath(socket, stream);
-					break;
-				}
+			{
+				client_->peerMan().onCmdBuildP2pPath(socket, stream);
+				break;
+			}
 			case net::kCommandType_PeerSync:
-				{
-					client_->peerMan().onCmdPeerSync(socket, stream);
-					break;
-				}
+			{
+				client_->peerMan().onCmdPeerSync(socket, stream);
+				break;
+			}
 			case net::kCommandType_BuildPathAck:
-				{
-					client_->peerMan().onCmdBuildP2pPathAck(socket, stream);
-					break;
-				}
+			{
+				client_->peerMan().onCmdBuildP2pPathAck(socket, stream);
+				break;
+			}
 			default:
 				assert(false);
 				break;
 		}
 		return 0;
+	}
+
+	HERRCODE CommandCenter::onCmdImageMessage(SOCKET socket, SockStream& is)
+	{
+		int size;
+		ImageMessageForSend* message;
+		try {
+			size = is.getInt();
+			if (size != is.getSize())
+				return H_INVALID_PACKAGE;
+			message = (ImageMessageForSend*)is.getInt64();
+		} catch (std::out_of_range& e) {
+			return H_INVALID_PACKAGE;
+		}
+
+		SockStream os;
+		os.writeInt(net::kCommandType_FileExists);
+		os.writeInt(0); //dummy size
+		os.writeInt64((int64_t)message);
+		os.writeStringVec(message->getHashList());
+		os.flushSize();
+		queueSendRequest(socket, os);
+		return H_OK;
+	}
+
+	HERRCODE CommandCenter::onCmdFileCheckAck(SOCKET socket, SockStream& is)
+	{
+		int size;
+		ImageMessageForSend* msg;
+		std::vector<std::u16string> urlList;
+		try {
+			size = is.getInt();
+			if (size != is.getSize()) {
+				return H_INVALID_PACKAGE;
+			}
+			msg = (ImageMessageForSend*)is.getInt64();
+			urlList = is.getStringVec();
+		} catch (std::out_of_range& e) {
+			return H_INVALID_PACKAGE;
+		}
+
+		auto uploadList = msg->getUploadFileList(urlList);
+		if (!uploadList.empty()) {
+			SockStream os;
+			os.writeInt(net::kCommandType_FileUpload);
+			os.writeInt(0);
+			os.writeInt64((int64_t)msg);
+			os.writeInt(uploadList.size());
+			for (auto path : uploadList) {
+				auto pos = path.rfind('.');
+				std::u16string ext;
+				if (pos != -1) {
+					ext = path.substr(pos + 1);
+				}
+				os.writeString(ext);
+				buffer outBuf;
+				auto uPath = su::u16to8(path);
+				FileUtils::ReadAll(uPath, outBuf);
+				os.writeBuffer(outBuf);
+			}
+			os.flushSize();
+			queueSendRequest(socket, os);
+		} else {
+			SockStream os;
+			os.writeInt(net::kCommandType_Message);
+			os.writeInt(0);
+			os.writeString(client_->getEmail());
+			os.writeString(msg->getRecver());
+			os.writeInt64(msg->getTimeStamp());
+			auto message = msg->translateMessage(urlList);
+			os.writeString(message);
+			os.flushSize();
+			queueSendRequest(socket, os);
+			client_->messageMan().addMessageRequest(msg->getTimeStamp(), msg->getRecver(), msg->getTimeStamp());
+		}
+		return H_OK;
 	}
 
 	HERRCODE CommandCenter::onCmdMessage(SOCKET socket, SockStream& is)
@@ -265,45 +378,24 @@ namespace avc
 		return userList_;
 	}
 
-	void CommandCenter::sendImageMessage(SOCKET socket, ImageMessageForSend* message)
+	HERRCODE CommandCenter::onCmdFileUploadAck(SOCKET socket, SockStream& is)
 	{
-		SockStream ss;
-		ss.writeInt(net::kCommandType_FileExists);
-		ss.writeInt(0); //dummy size
-		ss.writeInt64((int64_t)message);
-		ss.writeStringVec(message->getHashList());
-		ss.flushSize();
-		queueSendRequest(socket, ss);
-	}
-
-	void CommandCenter::onCmdFileCheckAck(SOCKET socket, ImageMessageForSend* msg, const std::vector<std::u16string>& urlList)
-	{
-		auto uploadList = msg->getUploadFileList(urlList);
-		SockStream ss;
-		ss.writeInt(net::kCommandType_FileUpload);
-		ss.writeInt(0);
-		ss.writeInt64((int64_t)msg);
-		ss.writeInt(uploadList.size());
-		for (auto path : uploadList) {
-			auto pos = path.rfind('.');
-			std::u16string ext;
-			if (pos != -1) {
-				ext = path.substr(pos);
+		int size;
+		ImageMessageForSend* msg;
+		std::vector<std::u16string> urlList;
+		try {
+			size = is.getInt();
+			if (size != is.getSize()) {
+				return H_INVALID_PACKAGE;
 			}
-			ss.writeString(ext);
-			buffer outBuf;
-			auto uPath = su::u16to8(path);
-			FileUtils::ReadAll(uPath, outBuf);
-			ss.writeBuffer(outBuf);
+			msg = (ImageMessageForSend*)is.getInt64();
+			urlList = is.getStringVec();
+		} catch (std::out_of_range& e) {
+			return H_INVALID_PACKAGE;
 		}
-		ss.flushSize();
-		queueSendRequest(socket, ss);
-	}
 
-	void CommandCenter::onCmdFileUploadAck(SOCKET socket, ImageMessageForSend* msg,
-			const std::vector<std::u16string>& urlList)
-	{
 		auto message = msg->translateMessage(urlList);
+		syslog(LOG_INFO, "after translate message is %s\n", su::u16to8(message).c_str());
 		SockStream os;
 		os.writeInt(net::kCommandType_Message);
 		os.writeInt(0);
@@ -314,6 +406,7 @@ namespace avc
 		os.flushSize();
 		queueSendRequest(socket, os);
 		client_->messageMan().addMessageRequest(msg->getTimeStamp(), msg->getRecver(), msg->getTimeStamp());
+		return H_OK;
 	}
 
 	void CommandCenter::onCmdFileDownloadAck(SOCKET socket, SockStream& stream)
@@ -393,4 +486,11 @@ namespace avc
 			return H_INVALID_PACKAGE;
 		}
 	}
+
+	void CommandCenter::queueSendRequest(SOCKET socket, SockStream& is)
+	{
+		client_->queueSendRequest(socket, is);
+	}
+
 }
+

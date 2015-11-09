@@ -3,14 +3,15 @@
 #include <string>
 #include <map>
 #include <vector>
+#include "../common/errcode.h"
 
 namespace avc
 {
-	class Utils
+	class XmlUtils
 	{
 	public:
-		Utils();
-		~Utils();
+		XmlUtils();
+		~XmlUtils();
 		static int XmlToImageList(const std::u16string& xml, std::vector<std::u16string>* fileList);
 		static int XmlTranslateMessage(const std::u16string& xmlMessge,
 			const std::map<std::u16string, std::u16string>& fileUrlMap,

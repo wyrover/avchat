@@ -1,26 +1,15 @@
 #include "stdafx.h"
-#include "Utils.h"
-#include "../rapidxml/rapidxml.hpp"
 #include "../common/errcode.h"
 #include "../common/StringUtils.h"
 #include "../common/trace.h"
-
-#define LOG_XML 1
-
+#include "../rapidxml/rapidxml.hpp"
+#include "RapidXmlUtils.h"
 using namespace rapidxml;
+
 namespace avc
 {
-	Utils::Utils()
-	{
-	}
 
-
-	Utils::~Utils()
-	{
-	}
-
-
-	int Utils::XmlToImageList(const std::u16string& xml, std::vector<std::u16string>* fileList)
+	int RapidXmlUtils::XmlToImageList(const std::u16string& xml, std::vector<std::u16string>* fileList)
 	{
 		auto aFullStr = u"<msg>" + xml + u"</msg>";
 		auto uFullStr = su::u16to8(aFullStr);
@@ -48,10 +37,10 @@ namespace avc
 		return H_OK;
 	}
 
-	
+
 	// filepath to src
-	int Utils::XmlTranslateMessage(const std::u16string& xmlMessage, const std::map<std::u16string, std::u16string>& fileUrlMap,
-		std::u16string* message)
+	int RapidXmlUtils::XmlTranslateMessage(const std::u16string& xmlMessage, const std::map<std::u16string, std::u16string>& fileUrlMap,
+			std::u16string* message)
 	{
 		std::string uMessage;
 		auto aFullStr = u"<msg>" + xmlMessage + u"</msg>";
@@ -82,12 +71,13 @@ namespace avc
 	}
 
 	// replate img with 0xfffc and fill the image list
-	int Utils::XmlMessageToQtMessage(const std::u16string& xmlMessage, std::vector<std::u16string>* imageList,
-		std::u16string* message)
+	int RapidXmlUtils::XmlMessageToQtMessage(const std::u16string& xmlMessage, std::vector<std::u16string>* imageList,
+			std::u16string* message)
 	{
 		std::string uMessage;
 		auto aFullStr = u"<msg>" + xmlMessage + u"</msg>";
 		auto uFullStr = su::u16to8(aFullStr);
+		printf("start to parse str: %s\n", uFullStr.c_str());
 		std::vector<char> buf(uFullStr.begin(), uFullStr.end());
 		xml_document<> doc;
 		doc.parse<0>(buf.data());
@@ -116,4 +106,5 @@ namespace avc
 		*message = su::u8to16(uMessage);
 		return H_OK;
 	}
+
 }

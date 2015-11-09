@@ -176,7 +176,7 @@ HERRCODE ChatServer::queueSendRequest(SOCKET sock, SockStream& stream)
 		int rc = send(sock, stream.getBuf(), stream.getSize(), 0);
 		if (rc > 0) {
 			if (rc == stream.getSize()) {
-				printf("send request directly done %d\n", stream.getSize());
+				printf("send request directly done %lu\n", stream.getSize());
 				return H_OK;
 			} else {
 				buffer.append(stream.getBuf() + rc, stream.getSize() - rc);

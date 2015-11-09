@@ -10,6 +10,8 @@
 
 User::User()
 {
+	id_ = -1;
+	status_ = -1;
 }
 
 User::~User()

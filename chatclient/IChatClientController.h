@@ -16,5 +16,6 @@ namespace avc
 			const std::u16string& filename, int64_t fileSize) = 0;
 		virtual void onFileRequestAck(const std::u16string& sender, int64_t timestamp, bool allow) = 0;
 		virtual void onChatError(ChatError* error) = 0;
+		virtual ~IChatClientController() = default;
 	};
 }

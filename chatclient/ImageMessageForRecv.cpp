@@ -3,11 +3,12 @@
 #include "../common/FileUtils.h"
 #include "../common/SockStream.h"
 #include "../common/StringUtils.h"
-#include "Utils.h"
+#include "XmlUtils.h"
 namespace avc
 {
 	ImageMessageForRecv::ImageMessageForRecv()
 	{
+		timestamp_ = -1;
 	}
 
 
@@ -32,10 +33,14 @@ namespace avc
 	std::vector<std::u16string> ImageMessageForRecv::getNeedDownloadFileList(const std::u16string& imageDir)
 	{
 		std::vector<std::u16string> needList;
-		avc::Utils::XmlToImageList(rawMessage_, &fileList_);
+		avc::XmlUtils::XmlToImageList(rawMessage_, &fileList_);
 		for (auto filePath : fileList_) {
+			std::u16string filename;
 			auto pos = filePath.rfind(u'/');
-			auto filename = filePath.substr(pos, filePath.length() - pos);
+			if (pos != -1)
+				filename = filePath.substr(pos);
+			else
+				filename = filePath;
 			if (!FileUtils::FileExists(su::u16to8(imageDir + filename).c_str())) {
 				needList.push_back(filePath);
 			}

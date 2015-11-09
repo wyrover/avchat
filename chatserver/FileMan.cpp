@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include "../common/errcode.h"
 #include "../common/FileUtils.h"
-#include "FileMan.h"
-
 #include "../common/StringUtils.h"
+
+#include "FileMan.h"
 #include "Utils.h"
 #include "ServerContext.h"
 #include "DBContext.h"

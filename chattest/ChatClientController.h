@@ -6,6 +6,7 @@ class ChatClientController : public avc::IChatClientController
 {
 public:
         ChatClientController();
+        virtual ~ChatClientController() = default;
         virtual  void onNewMessage(const std::u16string& sender, const std::u16string& username,
                                    int64_t timestamp, const std::u16string& message);
         virtual  void onNewUserList();

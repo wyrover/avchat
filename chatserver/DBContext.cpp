@@ -148,7 +148,7 @@ HERRCODE DBContext::getFileUrl(const std::string& hashId, std::string* url)
 		while (res->next()) {
 			auto name = res->getString("url");
 			if (!name->empty()) {
-				*url = ServerContext::getInstance()->getImageDir() + name;
+				*url = name;
 				return H_OK;
 			}
 		}

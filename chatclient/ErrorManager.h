@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <string>
+#include <stdio.h>
 #include <stdint.h>
 #include <vector>
 namespace avc
@@ -23,8 +24,10 @@ namespace avc
 	private:
 		ChatError* getChatError(ChatRequest* request, int64_t currTime);
 		std::vector<ChatRequest*> requests_;
-		HANDLE hQuitEvent_;
 		ChatClient* client_;
 		volatile bool quit_;
+		char pipeName_[L_tmpnam];	
+		std::recursive_mutex mutex_;
+        int kq_;
 	};
 }

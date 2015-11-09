@@ -62,7 +62,7 @@ bool FileUtils::ReadAll(const std::string& filePath, buffer& outBuf)
 	readBuf.size(fileSize);
 	auto rc = fread(readBuf.data(), fileSize, 1, fd);
 	fclose(fd);
-	if (rc != fileSize) {
+	if (rc != 1) {
 		return false;
 	} else {
 		readBuf.swap(outBuf);
@@ -72,13 +72,12 @@ bool FileUtils::ReadAll(const std::string& filePath, buffer& outBuf)
 
 bool FileUtils::FnCreateFile(const std::string& filePath, buffer& buf)
 {
-	buffer readBuf;
 	auto fd = fopen(filePath.c_str(),"wb"); 
 	if (fd == NULL)
 		return false;
 	auto rc = fwrite(buf.data(), buf.size(), 1, fd);
 	fclose(fd);
-	return rc == buf.size();
+	return rc;
 }
 
 int FileUtils::CalculateFileSHA1(const std::string& filePath, std::string* pHash)
@@ -114,21 +113,24 @@ std::string FileUtils::FileSizeToReadable(int fileSize)
 	return buf;
 }
 
-void FileUtils::MkDirs(const std::string& filePath)
+bool FileUtils::MkDirs(const std::string& filePath)
 {
-	char tmp[PATH_MAX];
+	std::vector<char> keke(filePath.begin(), filePath.end());
+	char* tmp = keke.data();
 	char *p = NULL;
 	size_t len;
-
-	snprintf(tmp, sizeof(tmp),"%s",filePath.c_str());
-	len = strlen(tmp);
+	len = filePath.size();
 	if(tmp[len - 1] == '/')
 		tmp[len - 1] = 0;
-	for(p = tmp + 1; *p; p++)
+	for(p = tmp + 1; *p; p++) {
 		if(*p == '/') {
 			*p = 0;
-			mkdir(tmp, S_IRWXU);
+			if (mkdir(tmp, S_IRWXU) != 0 && errno != EEXIST)
+				return false;
 			*p = '/';
 		}
-	mkdir(tmp, S_IRWXU);
+	}
+	if (mkdir(tmp, S_IRWXU) != 0 && errno != EEXIST)
+		return false;
+	return true;
 }

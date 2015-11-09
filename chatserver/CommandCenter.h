@@ -14,6 +14,7 @@ struct CommandInfo
 {
 	CommandInfo() {
 		fNeededLen = -1;
+		fCmdLen = 0;
 	}
 	buffer fBuf;
 	int fNeededLen;
@@ -43,9 +44,11 @@ public:
 private:
 	void onCmdLogin(SOCKET socket, SockStream& stream);
 	void onCmdLogout(SOCKET socket, SockStream& stream);
+
 	HERRCODE onCmdMessage(SOCKET socket, SockStream& stream);
-	void onCmdFileCheck(SOCKET socket, int id, const std::vector<std::u16string>& hashList);
-	void onCmdFileUpload(SOCKET socket, SockStream& stream);
+	HERRCODE onCmdFileCheck(SOCKET socket, SockStream& stream);
+	HERRCODE onCmdFileUpload(SOCKET socket, SockStream& stream);
+
 	void onCmdFileDownload(SOCKET socket, SockStream& stream);
 	void onCmdFileTransferRequest(SOCKET socket, SockStream& stream);
 	void onCmdFileTransferRequestAck(SOCKET socket, SockStream& stream);

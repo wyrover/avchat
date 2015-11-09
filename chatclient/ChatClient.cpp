@@ -1,26 +1,29 @@
-#include "stdafx.h"
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/event.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <assert.h>
-#include <sstream>
-#include "../common/errcode.h"
-#include "../common/NetConstants.h"
-#include "../common/SockStream.h"
-#include "../common/trace.h"
-#include "../common/Utils.h"
-#include "../common/FileUtils.h"
-#include "../common/StringUtils.h"
-#include "LoginError.h"
 #include "ImageMessageForSend.h"
-#include "UtilsTest.h"
-#include "ChatClient.h"
+#include <assert.h>
+#include <chatclient/ChatClient.h>
+#include <chatclient/LoginError.h>
+#include <common/buffer.h>
+#include <common/FileUtils.h>
+#include <common/NetConstants.h>
+#include <common/SockStream.h>
+#include <common/StringUtils.h>
+#include <common/trace.h>
+#include <common/Utils.h>
+#include <netinet/in.h>
+#include <sys/_endian.h>
+#include <sys/_types/_size_t.h>
+#include <sys/_types/_time_t.h>
+#include <sys/_types/_timespec.h>
+#include <sys/errno.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
+#include <syslog.h>
+#include <unistd.h>
+#include <__mutex_base>
+#include <cstdio>
+#include <cstring>
+#include <sstream>
 
 #define LOG_LOGIN 1
 #define LOG_KQUEUE 0
@@ -130,14 +133,18 @@ HERRCODE ChatClient::sendMessage(const std::u16string& username, const std::u16s
 		stream.writeString(message);
 		stream.flushSize();
 		queueSendRequest(sock_, stream);
-		msgMan_.addMessageRequest(timestamp, username, timestamp);
 	} else {
-		/*         ChatOverlappedData* ol = new ChatOverlappedData(net::kAction_SendMessage);*/
-		//ImageMessageForSend* msg = new ImageMessageForSend;
-		//msg->setRawMessage(message, username, timestamp);
-		//ol->setProp((int)msg);
-		/*PostQueuedCompletionStatus(hComp_, 0, kServerKey, ol);*/
+		ImageMessageForSend* msg = new ImageMessageForSend;
+		msg->setRawMessage(message, username, timestamp);
+
+		SockStream cmd;
+		cmd.writeInt(net::kCommandType_ImageMessage);
+		cmd.writeInt(0); //dummy size
+		cmd.writeInt64((int64_t)msg);
+		cmd.flushSize();
+		cmdCenter_.postCommand(sock_, *(buffer*)&cmd);
 	}
+	msgMan_.addMessageRequest(timestamp, username, timestamp);
 	return H_OK;
 }
 
@@ -286,12 +293,13 @@ void ChatClient::start()
 	for (int i = 0; i < threadCount; ++i){
                 threads_.push_back(std::thread(&ChatClient::threadFun, this));
 	}
-	threads_.push_back(std::thread(&ErrorManager::threadFun, msgMan_));
+	threads_.push_back(std::thread(&ErrorManager::threadFun, &msgMan_));
+	cmdCenter_.start();
 }
 
 void ChatClient::setImageCacheDir(const std::u16string& filePath)
 {
-	imageCache_ = filePath + u"\\" + email_ + u"\\";
+	imageCache_ = filePath + u"/" + email_ + u"/";
 	FileUtils::MkDirs(su::u16to8(imageCache_));
 }
 
@@ -322,6 +330,7 @@ HERRCODE ChatClient::loginImpl(int type, const std::u16string& username, const s
 	addr.sin_addr = iaddr;
 	auto err = connect(sock_, (const sockaddr*)&addr, sizeof(sockaddr_in));
 	if (err == 0) {
+		connected_ = true;
 		struct kevent ev;
 		EV_SET(&ev, sock_, EVFILT_READ, EV_ADD, 0, 0, 0);
 		if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {
@@ -356,13 +365,13 @@ HERRCODE ChatClient::handleConnect()
 {
 	int optvalue = -1;
 	socklen_t optlen = sizeof(int);
-        if (getsockopt(sock_, SOL_SOCKET, SO_ERROR, &optvalue, &optlen) != 0 || optvalue != 0) {
-                connected_ = false;
+	if (getsockopt(sock_, SOL_SOCKET, SO_ERROR, &optvalue, &optlen) != 0 || optvalue != 0) {
+		connected_ = false;
 		controller()->onChatError(new LoginError());
 		return H_NETWORK_ERROR;
 	}
 
-        connected_ = true;
+	connected_ = true;
 	struct kevent ev;
 	EV_SET(&ev, sock_, EVFILT_WRITE, EV_DELETE, 0, 0, 0);
 	if (kevent(kq_, &ev, 1, NULL, 0, 0) < 0) {

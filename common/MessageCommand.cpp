@@ -6,6 +6,7 @@
 MessageCommand::MessageCommand()
 	: ChatCommand(net::kCommandType_Message)
 {
+	timeStamp_ = -1;
 }
 
 MessageCommand::~MessageCommand()

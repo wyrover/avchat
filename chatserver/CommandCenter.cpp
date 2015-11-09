@@ -150,16 +150,12 @@ int CommandCenter::handleCommand(SOCKET socket, buffer& cmdBuf)
 	}
 	case net::kCommandType_Message:
 	{
-
 		onCmdMessage(socket, stream);
 		break;
 	}
 	case net::kCommandType_FileExists:
 	{
-		auto size = stream.getInt();
-		auto id = stream.getInt();
-		auto hashList = stream.getStringVec();
-		onCmdFileCheck(socket, id, hashList);
+		onCmdFileCheck(socket, stream);
 		break;
 	}
 	case net::kCommandType_FileUpload:
@@ -278,8 +274,22 @@ HERRCODE CommandCenter::onCmdMessage(SOCKET socket, SockStream& is)
 	return H_OK;
 }
 
-void CommandCenter::onCmdFileCheck(SOCKET socket, int id, const std::vector<std::u16string>& hashList)
+HERRCODE CommandCenter::onCmdFileCheck(SOCKET socket, SockStream& is)
 {
+	int size;
+	int64_t id;
+	std::vector<std::u16string> hashList;
+	try {
+		size = is.getInt();
+		if (size != is.getSize()) {
+			return H_INVALID_PACKAGE;
+		}
+		id = is.getInt64();
+		hashList = is.getStringVec();
+	} catch (std::out_of_range& e) {
+		return H_INVALID_PACKAGE;
+	}
+
 	std::vector<std::u16string> urlList;
 	for (auto hash : hashList) {
 		std::u16string url;
@@ -290,13 +300,14 @@ void CommandCenter::onCmdFileCheck(SOCKET socket, int id, const std::vector<std:
 			urlList.push_back(u"");
 		}
 	}
-	SockStream stream;
-	stream.writeInt(net::kCommandType_FileExistsAck);
-	stream.writeInt(0);
-	stream.writeInt(id);
-	stream.writeStringVec(urlList);
-	stream.flushSize();
-	queueSendRequest(socket, stream);
+	SockStream os;
+	os.writeInt(net::kCommandType_FileExistsAck);
+	os.writeInt(0);
+	os.writeInt64(id);
+	os.writeStringVec(urlList);
+	os.flushSize();
+	queueSendRequest(socket, os);
+	return H_OK;
 }
 
 void CommandCenter::queueSendRequest(SOCKET socket, SockStream& stream)
@@ -328,38 +339,49 @@ void CommandCenter::queueRecvCmdRequest(SOCKET socket)
 {
 }
 
-void CommandCenter::onCmdFileUpload(SOCKET socket, SockStream& inStream)
+HERRCODE CommandCenter::onCmdFileUpload(SOCKET socket, SockStream& is)
 {
 	std::vector<std::u16string> urlList;
-	auto size = inStream.getInt();
-	int id = inStream.getInt();
-	auto count = inStream.getInt();
-	for (int i = 0; i < count; ++i) {
-		auto fileType = inStream.getString();
-		buffer buf;
-		inStream.getBuffer(buf);
-		std::u16string url;
-		fileMan_.addFile(buf, fileType, &url);
-		urlList.push_back(url);
+	int size;
+	int64_t id;
+	int count;
+	try {
+		size = is.getInt();
+		if (size != is.getSize())
+			return H_INVALID_PACKAGE;
+		id = is.getInt64();
+		count = is.getInt();
+		for (int i = 0; i < count; ++i) {
+			auto fileType = is.getString();
+			buffer buf;
+			is.getBuffer(buf);
+			std::u16string url;
+			fileMan_.addFile(buf, fileType, &url);
+			urlList.push_back(url);
+		}
+	} catch (std::out_of_range& e) {
+		return H_INVALID_PACKAGE;
 	}
-	SockStream outStream;
-	outStream.writeInt(net::kCommandType_FileUploadAck);
-	outStream.writeInt(0);
-	outStream.writeInt(id);
-	outStream.writeStringVec(urlList);
-	outStream.flushSize();
-	queueSendRequest(socket, outStream);
+
+	SockStream os;
+	os.writeInt(net::kCommandType_FileUploadAck);
+	os.writeInt(0);
+	os.writeInt64(id);
+	os.writeStringVec(urlList);
+	os.flushSize();
+	queueSendRequest(socket, os);
+	return H_OK;
 }
 
 void CommandCenter::onCmdFileDownload(SOCKET socket, SockStream& stream)
 {
 	auto size = stream.getInt();
-	auto id = stream.getInt();
+	auto id = stream.getInt64();
 	auto count = stream.getInt();
 	SockStream outStream;
 	outStream.writeInt(net::kCommandType_FileDownloadAck);
 	outStream.writeInt(0);
-	outStream.writeInt(id);
+	outStream.writeInt64(id);
 	outStream.writeInt(count); 
 	for (int i = 0; i < count; ++i) {
 		auto url = stream.getString();

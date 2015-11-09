@@ -49,8 +49,19 @@ else
 	fi
 fi
 
+XML2_CONFIG=$(which xml2-config)
+if test "$MYSQL_CONFIG"; then
+	XML2_LDFLAGS=$(${XML2_CONFIG} --libs)
+	XML2_CFLAGS=$(${XML2_CONFIG} --cflags)
+else
+	AC_MSG_ERROR([avchat requires libxml2])
+fi
+AC_SUBST([XML2_LDFLAGS])
+AC_SUBST([XML2_CFLAGS])
+
 PKG_CHECK_MODULES([CRYPTOPP], [libcryptopp >= 5])
 AC_SUBST([CRYPTOPP_CFLAGS])
+
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdint.h string.h wchar.h])

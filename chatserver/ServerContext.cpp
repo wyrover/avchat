@@ -4,16 +4,15 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <string>
+#include "../common/FileUtils.h"
+#include "../common/StringUtils.h"
+#include "../common/Trace.h"
 #include "ServerContext.h"
 
-static const char kImageDir[] = "avchat/image/";
+static const char kImageDir[] = "/.avchat/image/";
+
 ServerContext::ServerContext()
 {
-	auto pw = getpwuid(getuid());
-	auto homedir = pw->pw_dir;
-	imageDir_ = homedir;
-	imageDir_ += kImageDir;
-	mkdir(imageDir_.c_str(), 0666);
 }
 
 ServerContext::~ServerContext()
@@ -22,6 +21,18 @@ ServerContext::~ServerContext()
 
 int ServerContext::init()
 {
+	auto pw = getpwuid(getuid());
+	if (!pw) {
+		LOG_ERROR("cannot get home directory\n");
+		return H_FAILED;
+	}
+	auto homedir = pw->pw_dir;
+	imageDir_ = homedir;
+	imageDir_ += kImageDir;
+	if (!FileUtils::MkDirs(imageDir_.c_str())) {
+		LOG_ERROR("cannot create server imagedir %s\n", imageDir_.c_str());
+		return H_FAILED;
+	}
 	return db_.init();
 }
 

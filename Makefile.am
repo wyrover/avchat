@@ -1,6 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
-AM_CXXFLAGS = -Wfatal-errors -std=c++11
-lib_LIBRARIES = libcommon.a libchatclient.a
+AM_CXXFLAGS = -Wfatal-errors -std=c++11 $(XML2_CFLAGS)
+noinst_LIBRARIES = libcommon.a libchatclient.a
 libcommon_a_SOURCES = \
 	common/stdafx.h \
 	common/trace.h \
@@ -45,22 +45,24 @@ libchatclient_a_SOURCES = \
 	chatclient/TcpPeerManager.h \
 	chatclient/ChatRequest.h \
 	chatclient/ImageMessageForSend.h \
-	chatclient/Utils.cpp \
+	chatclient/XmlUtils.cpp \
+	chatclient/XmlUtils.h \
+	chatclient/RapidXmlUtils.cpp \
+	chatclient/RapidXmlUtils.h \
+	chatclient/LibXmlUtils.cpp \
+	chatclient/LibXmlUtils.h \
 	chatclient/MessageError.cpp \
-	chatclient/Utils.h \
 	chatclient/CommandCenter.cpp \
 	chatclient/MessageError.h \
-	chatclient/UtilsTest.cpp \
 	chatclient/CommandCenter.h \
 	chatclient/MessageRequest.cpp \
-	chatclient/UtilsTest.h \
 	chatclient/common_inc.h \
 	chatclient/MessageRequest.h \
 	chatclient/ErrorManager.cpp \
 	chatclient/LoginError.h \
 	chatclient/LoginError.cpp
 
-bin_PROGRAMS = server test
+bin_PROGRAMS = server test unittest
 server_SOURCES = \
 	chatserver/stdafx.h \
 	chatserver/CommandCenter.h \
@@ -89,12 +91,21 @@ test_SOURCES = \
 	chattest/ChatClientController.h \
 	chattest/ChatClientController.cpp
 
+unittest_SOURCES = \
+	chatclient/XmlUtilsTest.cpp \
+	common/FileUtilsTest.cpp
+
 server_CXXFLAGS = $(AM_CXXFLAGS) $(MYSQL_CFLAGS) $(CRYPTOPP_CFLAGS)
 server_LDADD = $(MYSQL_LDFLAGS) -lmysqlcppconn-static -lmysqlclient -lcryptopp -lconfig libcommon.a
 server_LDFLAGS = -pthread
 
 test_LDFLAGS = -pthread
-test_LDADD = libchatclient.a libcommon.a $(CRYPTOPP_LDFLAGS) -lcryptopp 
+test_LDADD = libchatclient.a libcommon.a $(CRYPTOPP_LDFLAGS) -lcryptopp -lxml2
 test_CXXFLAGS = $(AM_CXXFLAGS)  $(CRYPTOPP_CFLAGS)
 test_DEPENDENCIES = libchatclient.a libcommon.a
+
+unittest_LDFLAGS = -pthread 
+unittest_LDADD = libchatclient.a libcommon.a $(CRYPTOPP_LDFLAGS) -lxml2 -lgtest -lgtest_main
+unittest_CXXFLAGS = $(AM_CXXFLAGS)  $(CRYPTOPP_CFLAGS)  $(XML2_CFLAGS)
+unittest_DEPENDENCIES = libchatclient.a libcommon.a
 

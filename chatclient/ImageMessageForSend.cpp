@@ -1,11 +1,14 @@
 #include "stdafx.h"
 #include "ImageMessageForSend.h"
 #include "../common/FileUtils.h"
-#include "Utils.h"
+#include "../common/StringUtils.h"
+#include <syslog.h>
+#include "XmlUtils.h"
 namespace avc
 {
 	ImageMessageForSend::ImageMessageForSend()
 	{
+		timestamp_ = -1;
 	}
 
 
@@ -27,11 +30,11 @@ namespace avc
 
 	std::vector<std::u16string> ImageMessageForSend::getHashList()
 	{
-		avc::Utils::XmlToImageList(rawMessage_, &fileList_);
+		avc::XmlUtils::XmlToImageList(rawMessage_, &fileList_);
 		for (auto filePath : fileList_) {
-			std::u16string hash;
-			//FileUtils::CalculateFileSHA1(filePath, &hash);
-			hashList_.push_back(hash);
+			std::string hash;
+			FileUtils::CalculateFileSHA1(su::u16to8(filePath), &hash);
+			hashList_.push_back(su::u8to16(hash));
 		}
 		return hashList_;
 	}
@@ -62,7 +65,8 @@ namespace avc
 			fileMap[fileList_[i]] = urlList_[i];
 		}
 		std::u16string message;
-		avc::Utils::XmlTranslateMessage(rawMessage_, fileMap, &message);
+		syslog(LOG_INFO, "rawmeessage = %s\n", su::u16to8(rawMessage_).c_str());
+		avc::XmlUtils::XmlTranslateMessage(rawMessage_, fileMap, &message);
 		return message;
 	}
 
