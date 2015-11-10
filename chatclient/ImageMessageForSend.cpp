@@ -33,7 +33,7 @@ namespace avc
 		avc::XmlUtils::XmlToImageList(rawMessage_, &fileList_);
 		for (auto filePath : fileList_) {
 			std::string hash;
-			FileUtils::CalculateFileSHA1(su::u16to8(filePath), &hash);
+			base::FileUtils::CalculateFileSHA1(su::u16to8(filePath), &hash);
 			hashList_.push_back(su::u8to16(hash));
 		}
 		return hashList_;

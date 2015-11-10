@@ -6,7 +6,7 @@
 #include <thread>
 #include <netinet/in.h>
 #include "../common/errcode.h"
-
+#include "../common/SockStream.h"
 namespace avc
 {
 	class ChatClient;

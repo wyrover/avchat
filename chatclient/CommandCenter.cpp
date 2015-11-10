@@ -276,7 +276,7 @@ namespace avc
 				os.writeString(ext);
 				buffer outBuf;
 				auto uPath = su::u16to8(path);
-				FileUtils::ReadAll(uPath, outBuf);
+				base::FileUtils::ReadAll(uPath, outBuf);
 				os.writeBuffer(outBuf);
 			}
 			os.flushSize();

@@ -9,6 +9,7 @@
 #include <syslog.h>
 #include <sstream>
 #include "../common/Utils.h"
+#include "../common/NetUtils.h"
 #include "../common/NetConstants.h"
 #include "../common/trace.h"
 #include "TcpPeerManager.h"
@@ -38,9 +39,8 @@ namespace avc
 		if (sock_ == -1)
 			return H_NETWORK_ERROR;
 
-		int rc  = base::Utils::BindSocket(sock_, "", "0");
-		if (rc != H_OK)
-			return rc;
+		if (!base::NetUtils::BindSocket(sock_, "", "0"))
+			return H_NETWORK_ERROR;
 
 		sockaddr_in addr;
 		socklen_t len;
@@ -51,10 +51,10 @@ namespace avc
 		}
 		port_ = addr.sin_port;
 
-		if (base::Utils::MakeSocketNonBlocking(sock_) < 0)
+		if (base::NetUtils::MakeSocketNonBlocking(sock_))
 			return H_NETWORK_ERROR;
 
-		rc = listen(sock_, SOMAXCONN);
+		auto rc = listen(sock_, SOMAXCONN);
 		if (rc != 0) {
 			return H_NETWORK_ERROR;
 		}
@@ -144,7 +144,7 @@ namespace avc
 			socklen_t addrLen = sizeof(sockaddr_in);
 			auto clientfd = accept(sock, (sockaddr*)&remoteAddr, &addrLen);
 			if (clientfd != -1) {
-				auto rc = base::Utils::MakeSocketNonBlocking(clientfd);
+				base::NetUtils::MakeSocketNonBlocking(clientfd);
 				acceptedRequest_++;
 #if LOG_LOGIN
 				char str[20];
@@ -204,7 +204,7 @@ namespace avc
 		SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		if (sock == INVALID_SOCKET)
 			return H_NETWORK_ERROR;
-		if (base::Utils::MakeSocketNonBlocking(sock) < 0)
+		if (!base::NetUtils::MakeSocketNonBlocking(sock))
 			return H_NETWORK_ERROR;
 		auto err = connect(sock, (const sockaddr*)&remoteName, sizeof(sockaddr_in));
 		if (err == 0) {

@@ -5,7 +5,7 @@ TEST(FileUtils, readall)
 {
 	auto filename = "/Users/jcyangzh/Desktop/keke.png";
 	buffer buf;
-	FileUtils::ReadAll(filename, buf);
+	base::FileUtils::ReadAll(filename, buf);
 	ASSERT_TRUE(buf.size() > 0);
 }
 

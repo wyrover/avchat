@@ -29,7 +29,7 @@ int ServerContext::init()
 	auto homedir = pw->pw_dir;
 	imageDir_ = homedir;
 	imageDir_ += kImageDir;
-	if (!FileUtils::MkDirs(imageDir_.c_str())) {
+	if (!base::FileUtils::MkDirs(imageDir_.c_str())) {
 		LOG_ERROR("cannot create server imagedir %s\n", imageDir_.c_str());
 		return H_FAILED;
 	}

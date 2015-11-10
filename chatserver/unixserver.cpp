@@ -16,9 +16,10 @@
 #include <algorithm>
 #include <libconfig.h>
 #include "unixserver.h"
-#include "Utils.h"
 #include "ServerContext.h"
 #include "../common/errcode.h"
+#include "../common/FileUtils.h"
+#include "../common/NetUtils.h"
 #include "../common/Utils.h"
 #include "../common/NetConstants.h"
 #include "../common/SockStream.h"
@@ -114,21 +115,19 @@ HERRCODE ChatServer::initSock(const std::string& ip, const std::string& dataPort
 	if (udpHoleSock_ == -1)
 		return H_NETWORK_ERROR;
 
-	int rc  = base::Utils::BindSocket(listenSock_, ip, dataPort);
-	if (rc != H_OK)
-		return rc;
-
-	rc  = base::Utils::BindSocket(tcpHoleSock_, ip, holePort);
-	if (rc != H_OK)
-		return rc;
-
-	if (base::Utils::MakeSocketNonBlocking(listenSock_) < 0)
+	if (!base::NetUtils::BindSocket(listenSock_, ip, dataPort))
 		return H_NETWORK_ERROR;
 
-	if (base::Utils::MakeSocketNonBlocking(tcpHoleSock_) < 0)
+	if (!base::NetUtils::BindSocket(tcpHoleSock_, ip, holePort))
 		return H_NETWORK_ERROR;
 
-	rc = listen(listenSock_, SOMAXCONN);
+	if (!base::NetUtils::MakeSocketNonBlocking(listenSock_))
+		return H_NETWORK_ERROR;
+
+	if (!base::NetUtils::MakeSocketNonBlocking(tcpHoleSock_))
+		return H_NETWORK_ERROR;
+
+	auto rc = listen(listenSock_, SOMAXCONN);
 	if (rc != 0) {
 		return H_NETWORK_ERROR;
 	}
@@ -238,7 +237,7 @@ int ChatServer::acceptConnections(SOCKET sock)
 		socklen_t addrLen = sizeof(sockaddr_in);
 		auto clientfd = accept(sock, (sockaddr*)&remoteAddr, &addrLen);
 		if (clientfd != -1) {
-			auto rc = base::Utils::MakeSocketNonBlocking(clientfd);
+			base::NetUtils::MakeSocketNonBlocking(clientfd);
 			acceptedRequest_++;
 #if LOG_LOGIN
 			char str[20];

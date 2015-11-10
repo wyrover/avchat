@@ -15,6 +15,7 @@
 
 #include "../common/buffer.h"
 #include "../common/FileUtils.h"
+#include "../common/NetUtils.h"
 #include "../common/NetConstants.h"
 #include "../common/SockStream.h"
 #include "../common/StringUtils.h"
@@ -299,7 +300,7 @@ namespace avc
 	void ChatClient::setImageCacheDir(const std::u16string& filePath)
 	{
 		imageCache_ = filePath + u"/" + email_ + u"/";
-		FileUtils::MkDirs(su::u16to8(imageCache_));
+		base::FileUtils::MkDirs(su::u16to8(imageCache_));
 	}
 
 	std::u16string ChatClient::getImageDir()
@@ -423,7 +424,7 @@ namespace avc
 			return H_NETWORK_ERROR;
 		}
 		syslog(LOG_DEBUG, "created socket %d\n", sock_);
-		if (base::Utils::MakeSocketNonBlocking(sock_) < 0) {
+		if (!base::NetUtils::MakeSocketNonBlocking(sock_)) {
 			LOG_ERROR("cannot make socket nonblocking\n");
 			return H_NETWORK_ERROR;
 		}

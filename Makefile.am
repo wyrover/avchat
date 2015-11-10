@@ -10,6 +10,8 @@ libcommon_a_SOURCES = \
 	common/Utils.h \
 	common/FileUtils.h \
 	common/StringUtils.h \
+	common/HashUtils.h \
+	common/NetUtils.h \
 	common/buffer.h \
 	common/errcode.h \
 	common/linux_trace.h \
@@ -19,7 +21,9 @@ libcommon_a_SOURCES = \
 	common/SockStream.cpp \
 	common/Utils.cpp \
 	common/FileUtils.cpp \
-	common/StringUtils.cpp
+	common/StringUtils.cpp \
+	common/HashUtils.cpp \
+	common/NetUtils.cpp
 
 libchatclient_a_SOURCES = \
 	chatclient/ChatClient.cpp \
@@ -73,7 +77,6 @@ server_SOURCES = \
 	chatserver/User.h \
 	chatserver/ClientManager.h \
 	chatserver/FileMan.h \
-	chatserver/Utils.h \
 	chatserver/main.cpp \
 	chatserver/CommandCenter.cpp \
 	chatserver/unixserver.cpp \
@@ -83,8 +86,7 @@ server_SOURCES = \
 	chatserver/ServerContext.cpp \
 	chatserver/User.cpp \
 	chatserver/ClientManager.cpp \
-	chatserver/FileMan.cpp \
-	chatserver/Utils.cpp
+	chatserver/FileMan.cpp 
 
 test_SOURCES = \
 	chattest/main.cpp \

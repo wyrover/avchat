@@ -41,7 +41,7 @@ namespace avc
 				filename = filePath.substr(pos);
 			else
 				filename = filePath;
-			if (!FileUtils::FileExists(su::u16to8(imageDir + filename).c_str())) {
+			if (!base::FileUtils::FileExists(su::u16to8(imageDir + filename).c_str())) {
 				needList.push_back(filePath);
 			}
 		}
@@ -65,7 +65,7 @@ namespace avc
 			buffer fileBuf;
 			stream.getBuffer(fileBuf);
 			auto fileName = imageDir + fileList_[i];
-			FileUtils::FnCreateFile(su::u16to8(fileName), fileBuf);
+			base::FileUtils::FnCreateFile(su::u16to8(fileName), fileBuf);
 		}
 	}
 

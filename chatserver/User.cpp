@@ -4,7 +4,8 @@
 #include "User.h"
 
 #include "../common/StringUtils.h"
-#include "Utils.h"
+#include "../common/FileUtils.h"
+#include "../common/HashUtils.h"
 #include "ServerContext.h"
 #include "DBContext.h"
 
@@ -32,7 +33,7 @@ HERRCODE User::login(int authType, const std::u16string& email, const std::u16st
 		while (res->next()) {
 			if (authType == net::kLoginType_Normal) {
 				auto password_hash = res->getString("password_hash");
-				if (!Utils::ValidatePasswordHash(su::u16to8(credential), password_hash)) {
+				if (!base::HashUtils::ValidatePasswordHash(su::u16to8(credential), password_hash)) {
 					return H_AUTH_FAILED;
 				}
 			} else if (authType == net::kLoginType_Auto) {

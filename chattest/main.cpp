@@ -14,9 +14,11 @@
 #include <vector>
 #include <thread>
 #include <iostream>
-#include "../chatclient/ChatClient.h"
+
 #include "../common/Utils.h"
 #include "../common/StringUtils.h"
+#include "../common/NetUtils.h"
+#include "../chatclient/ChatClient.h"
 #include "ChatClientController.h"
 
 #define SERVER_ADDRESS u"127.0.0.1"
@@ -125,7 +127,7 @@ namespace rawtest
 			return H_NETWORK_ERROR;
 		}
 		syslog(LOG_DEBUG, "created socket %d\n", sock_);
-		if (base::Utils::MakeSocketNonBlocking(sock_) < 0) {
+		if (!base::NetUtils::MakeSocketNonBlocking(sock_)) {
 			syslog(LOG_ERR, "cannot make socket nonblocking\n");
 			return H_NETWORK_ERROR;
 		}
